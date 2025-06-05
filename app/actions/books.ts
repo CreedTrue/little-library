@@ -2,9 +2,8 @@
 
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../api/auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
-import type { Book, Rating } from "@prisma/client"
 
 export async function addBook(bookData: {
   title: string
@@ -130,7 +129,7 @@ export async function getBooks({
     const totalPages = Math.ceil(total / limit);
 
     return {
-      books: books.map(book => ({
+      books: books.map((book: { ratings: { value: number }[] }) => ({
         ...book,
         averageRating: book.ratings.length > 0
           ? book.ratings.reduce((acc, rating) => acc + rating.value, 0) / book.ratings.length
