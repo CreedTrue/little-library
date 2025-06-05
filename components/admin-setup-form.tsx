@@ -12,10 +12,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { setupAdminAccount } from "@/app/actions/auth"
 import { useRouter } from "next/navigation"
 
-export function LoginForm({
+export function AdminSetupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
@@ -31,35 +31,33 @@ export function LoginForm({
     const formData = new FormData(event.currentTarget)
     const email = formData.get("email") as string
     const password = formData.get("password") as string
+    const confirmPassword = formData.get("confirmPassword") as string
 
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setError("Invalid email or password")
-        return
-      }
-
-      // Redirect to dashboard on successful login
-      router.push("/dashboard")
-    } catch (err) {
-      setError("Something went wrong")
-    } finally {
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
       setIsLoading(false)
+      return
     }
+
+    const result = await setupAdminAccount(email, password)
+
+    if (result.error) {
+      setError(result.error)
+      setIsLoading(false)
+      return
+    }
+
+    // Redirect to login page after successful setup
+    router.push("/login")
   }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle>Create Admin Account</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Create the first admin account for your library system
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -71,21 +69,27 @@ export function LoginForm({
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="admin@example.com"
                   required
                 />
               </div>
               <div className="grid gap-3">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
-                <Input id="password" name="password" type="password" required />
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                />
+              </div>
+              <div className="grid gap-3">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                />
               </div>
               {error && (
                 <div className="text-sm text-red-500">
@@ -94,19 +98,13 @@ export function LoginForm({
               )}
               <div className="flex flex-col gap-3">
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Login"}
+                  {isLoading ? "Creating..." : "Create Admin Account"}
                 </Button>
               </div>
-            </div>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <a href="#" className="underline underline-offset-4">
-                Sign up
-              </a>
             </div>
           </form>
         </CardContent>
       </Card>
     </div>
   )
-}
+} 

@@ -1,10 +1,13 @@
-import { LoginForm } from "@/components/login-form"
+import { Suspense } from "react"
+import { UserCountCheck } from "./user-count"
 
-export default function Page() {
+export default function LoginPage() {
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <LoginForm />
+    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <Suspense fallback={<div>Loading...</div>}>
+          <UserCountCheck />
+        </Suspense>
       </div>
     </div>
   )
