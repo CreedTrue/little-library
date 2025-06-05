@@ -2,6 +2,35 @@ import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "../api/auth/[...nextauth]/route"
 import Link from "next/link"
+import { prisma } from "@/lib/prisma"
+
+async function getStats() {
+  const totalBooks = await prisma.book.count()
+  const fourDaysAgo = new Date()
+  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4)
+  const recentlyAdded = await prisma.book.count({
+    where: {
+      createdAt: {
+        gte: fourDaysAgo,
+      },
+    },
+  })
+  const topRated = await prisma.book.findMany({
+    include: {
+      ratings: true,
+    },
+    take: 5,
+  })
+
+  // Sort the books by average rating in memory
+  const sortedTopRated = topRated.sort((a: { ratings: { value: number }[] }, b: { ratings: { value: number }[] }) => {
+    const avgRatingA = a.ratings.reduce((acc: number, curr: { value: number }) => acc + curr.value, 0) / a.ratings.length;
+    const avgRatingB = b.ratings.reduce((acc: number, curr: { value: number }) => acc + curr.value, 0) / b.ratings.length;
+    return avgRatingB - avgRatingA;
+  });
+
+  return { totalBooks, recentlyAdded, topRated: sortedTopRated }
+}
 
 function QuickActions() {
   return (
@@ -36,6 +65,8 @@ export default async function DashboardPage() {
     redirect("/login")
   }
 
+  const { totalBooks, recentlyAdded, topRated } = await getStats()
+
   return (
     <div className="container mx-auto py-10">
       <div className="flex flex-col gap-6">
@@ -51,15 +82,15 @@ export default async function DashboardPage() {
           {/* Quick Stats */}
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold">Total Books</h2>
-            <p className="mt-2 text-3xl font-bold">0</p>
+            <p className="mt-2 text-3xl font-bold">{totalBooks}</p>
           </div>
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold">Recently Added</h2>
-            <p className="mt-2 text-3xl font-bold">0</p>
+            <p className="mt-2 text-3xl font-bold">{recentlyAdded}</p>
           </div>
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold">Top Rated</h2>
-            <p className="mt-2 text-3xl font-bold">0</p>
+            <p className="mt-2 text-3xl font-bold">{topRated.length}</p>
           </div>
         </div>
         <QuickActions />
