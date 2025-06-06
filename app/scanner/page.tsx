@@ -21,9 +21,9 @@ export default function ScannerPage() {
     }
 
     // Initialize socket connection
-    const socket = io("https://38df-172-59-154-196.ngrok-free.app/",{
-      path: "/api/socket",
-    })
+    const socket = io(process.env.NEXT_PUBLIC_YOUR_DOMAIN || "http://localhost:3000", {
+        path: "/api/socket",
+      })
 
     socket.on("connect", () => {
       console.log("Connected to socket server")
