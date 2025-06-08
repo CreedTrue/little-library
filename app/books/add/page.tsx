@@ -45,6 +45,24 @@ export default function AddBookPage() {
   const [collections, setCollections] = useState<Collection[]>([])
 
   useEffect(() => {
+    // Check for scanned book data from dashboard
+    const scannedBookData = localStorage.getItem("scannedBook")
+    if (scannedBookData) {
+      const book: BookData = JSON.parse(scannedBookData)
+      setFormData({
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+        description: book.description || "",
+        coverUrl: book.coverUrl || "",
+        collectionId: "",
+      })
+      // Clear the stored data
+      localStorage.removeItem("scannedBook")
+    }
+  }, [])
+
+  useEffect(() => {
     // Fetch collections
     const fetchCollections = async () => {
       const result = await getCollections()
@@ -213,122 +231,139 @@ export default function AddBookPage() {
           <TabsTrigger value="isbn">ISBN Lookup</TabsTrigger>
         </TabsList>
         <TabsContent value="manual">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                Title
-              </label>
-              <input
-                type="text"
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="author" className="block text-sm font-medium text-gray-700">
-                Author
-              </label>
-              <input
-                type="text"
-                id="author"
-                value={formData.author}
-                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="isbn" className="block text-sm font-medium text-gray-700">
-                ISBN
-              </label>
-              <input
-                type="text"
-                id="isbn"
-                value={formData.isbn}
-                onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                Description
-              </label>
-              <textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="coverUrl" className="block text-sm font-medium text-gray-700">
-                Cover Image URL
-              </label>
-              <input
-                type="url"
-                id="coverUrl"
-                value={formData.coverUrl}
-                onChange={(e) => setFormData({ ...formData, coverUrl: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label htmlFor="collection" className="block text-sm font-medium text-gray-700">
-                Collection
-              </label>
-              <Select
-                value={formData.collectionId}
-                onValueChange={(value) => setFormData({ ...formData, collectionId: value })}
+          <div className="flex flex-col md:flex-row gap-8">
+            <form onSubmit={handleSubmit} className="flex-1 space-y-6" noValidate>
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="author" className="block text-sm font-medium">
+                  Author
+                </label>
+                <input
+                  type="text"
+                  id="author"
+                  value={formData.author}
+                  onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="isbn" className="block text-sm font-medium">
+                  ISBN
+                </label>
+                <input
+                  type="text"
+                  id="isbn"
+                  value={formData.isbn}
+                  onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label htmlFor="coverUrl" className="block text-sm font-medium">
+                  Cover Image URL
+                </label>
+                <input
+                  type="text"
+                  id="coverUrl"
+                  value={formData.coverUrl}
+                  onChange={(e) => setFormData({ ...formData, coverUrl: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label htmlFor="collection" className="block text-sm font-medium">
+                  Collection
+                </label>
+                <Select
+                  value={formData.collectionId}
+                  onValueChange={(value) => setFormData({ ...formData, collectionId: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a collection" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {collections.map((collection) => (
+                      <SelectItem key={collection.id} value={collection.id}>
+                        {collection.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <button
+                type="submit"
+                disabled={isSubmitting || isPending}
+                className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a collection" />
-                </SelectTrigger>
-                <SelectContent>
-                  {collections.map((collection) => (
-                    <SelectItem key={collection.id} value={collection.id}>
-                      {collection.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <button
-              type="submit"
-              disabled={isSubmitting || isPending}
-              className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {isSubmitting || isPending ? "Adding..." : "Add Book"}
-            </button>
-          </form>
+                {isSubmitting || isPending ? "Adding..." : "Add Book"}
+              </button>
+            </form>
+            {formData.coverUrl && (
+              <div className="flex-shrink-0 flex justify-center md:items-start md:mt-0 mt-8">
+                <img
+                  src={formData.coverUrl}
+                  alt="Book cover"
+                  className="h-64 w-auto object-contain border rounded shadow"
+                />
+              </div>
+            )}
+          </div>
         </TabsContent>
         <TabsContent value="isbn">
           <div className="space-y-4">
             <div>
-              <label htmlFor="isbn-lookup" className="block text-sm font-medium">
-                Enter ISBN
+              <label htmlFor="isbnLookup" className="block text-sm font-medium">
+                ISBN
               </label>
-              <input
-                type="text"
-                id="isbn-lookup"
-                value={isbnLookup}
-                onChange={(e) => setIsbnLookup(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-              />
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  id="isbnLookup"
+                  value={isbnLookup}
+                  onChange={(e) => setIsbnLookup(e.target.value)}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2"
+                  placeholder="Enter ISBN..."
+                />
+                <button
+                  type="button"
+                  onClick={handleIsbnLookup}
+                  disabled={lookupLoading}
+                  className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {lookupLoading ? "Looking up..." : "Lookup"}
+                </button>
+              </div>
+              {lookupError && (
+                <p className="mt-2 text-sm text-red-600">{lookupError}</p>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={handleIsbnLookup}
-              disabled={lookupLoading || !isbnLookup}
-              className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
-            >
-              {lookupLoading ? "Searching..." : "Search"}
-            </button>
-            {lookupError && <p className="text-red-500 text-sm">{lookupError}</p>}
           </div>
         </TabsContent>
       </Tabs>
