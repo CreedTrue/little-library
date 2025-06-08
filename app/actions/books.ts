@@ -14,13 +14,20 @@ interface AddBookData {
   collectionId?: string
 }
 
-export async function addBook(data: AddBookData) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
-    return { error: "Not authenticated" }
-  }
-
+export async function addBook(data: {
+  title: string
+  author: string
+  isbn: string
+  description?: string
+  coverImage?: string
+  collectionId?: string
+}) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return { error: "Not authenticated" }
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     })
@@ -29,20 +36,24 @@ export async function addBook(data: AddBookData) {
       return { error: "User not found" }
     }
 
+    const { collectionId, ...bookData } = data
+
     const book = await prisma.book.create({
       data: {
-        title: data.title,
-        author: data.author,
-        isbn: data.isbn || "",
-        description: data.description,
-        coverImage: data.coverImage,
+        ...bookData,
         userId: user.id,
-        collections: data.collectionId ? {
-          connect: {
-            id: data.collectionId
-          }
+        collections: collectionId ? {
+          connect: { id: collectionId }
         } : undefined
       },
+      include: {
+        collections: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     })
 
     return { book }
@@ -140,6 +151,12 @@ export async function getBooks({
         take: limit,
         include: {
           ratings: true,
+          collections: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       }),
       prisma.book.count({ where }),
@@ -148,7 +165,7 @@ export async function getBooks({
     const totalPages = Math.ceil(total / limit);
 
     return {
-      books: books.map((book: { ratings: { value: number }[] }) => ({
+      books: books.map((book) => ({
         ...book,
         averageRating: book.ratings.length > 0
           ? book.ratings.reduce((acc, rating) => acc + rating.value, 0) / book.ratings.length
@@ -207,5 +224,46 @@ export async function submitRating(bookId: string, rating: number) {
   } catch (error) {
     console.error("Error submitting rating:", error)
     return { error: "Failed to submit rating" }
+  }
+}
+
+export async function removeBook(bookId: string) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return { error: "Not authenticated" }
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
+
+    if (!user) {
+      return { error: "User not found" }
+    }
+
+    // Verify the book belongs to the user
+    const book = await prisma.book.findUnique({
+      where: { id: bookId },
+      select: { userId: true },
+    })
+
+    if (!book) {
+      return { error: "Book not found" }
+    }
+
+    if (book.userId !== user.id) {
+      return { error: "Not authorized to remove this book" }
+    }
+
+    // Delete the book
+    await prisma.book.delete({
+      where: { id: bookId },
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error removing book:", error)
+    return { error: "Failed to remove book" }
   }
 } 
