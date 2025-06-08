@@ -52,6 +52,8 @@ export async function setupAdminAccount(email: string, password: string) {
       }
     })
 
+    revalidatePath("/login")
+
     return { user }
   } catch (error) {
     console.error("Error setting up admin account:", error)
