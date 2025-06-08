@@ -1,35 +1,86 @@
-datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
-}
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
-  email         String    @unique
-  password      String
+  email         String?   @unique
+  password      String?
   books         Book[]
+  collections   Collection[]
+  accounts      Account[]
+  sessions      Session[]
   ratings       Rating[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Book {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   author      String
-  isbn        String?
+  isbn        String   @unique
   description String?
   coverImage  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   userId      String
-  user        User      @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collections Collection[] @relation("BookToCollection")
   ratings     Rating[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books       Book[]   @relation("BookToCollection")
 }
 
 model Rating {

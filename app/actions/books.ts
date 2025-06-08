@@ -5,29 +5,49 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 
-export async function addBook(bookData: {
+interface AddBookData {
   title: string
   author: string
   isbn?: string
   description?: string
   coverImage?: string
-}) {
+  collectionId?: string
+}
+
+export async function addBook(data: AddBookData) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    return { error: "Not authenticated" }
+  }
+
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" }
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
+
+    if (!user) {
+      return { error: "User not found" }
     }
 
     const book = await prisma.book.create({
       data: {
-        ...bookData,
-        userId: session.user.id,
+        title: data.title,
+        author: data.author,
+        isbn: data.isbn || "",
+        description: data.description,
+        coverImage: data.coverImage,
+        userId: user.id,
+        collections: data.collectionId ? {
+          connect: {
+            id: data.collectionId
+          }
+        } : undefined
       },
     })
 
-    return { success: true, book }
+    return { book }
   } catch (error) {
-    console.error("[ADD_BOOK]", error)
+    console.error("Error adding book:", error)
     return { error: "Failed to add book" }
   }
 }

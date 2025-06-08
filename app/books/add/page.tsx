@@ -3,15 +3,23 @@
 import { useEffect, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { addBook } from "@/app/actions/books"
+import { getCollections } from "@/app/actions/collections"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { io } from "socket.io-client"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface BookData {
   title: string
   author: string
   isbn: string
   coverUrl?: string
+  description?: string
+}
+
+interface Collection {
+  id: string
+  name: string
   description?: string
 }
 
@@ -25,6 +33,7 @@ export default function AddBookPage() {
     isbn: "",
     description: "",
     coverUrl: "",
+    collectionId: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isbnLookup, setIsbnLookup] = useState("")
@@ -33,6 +42,18 @@ export default function AddBookPage() {
   const [tab, setTab] = useState("manual")
   const [isConnected, setIsConnected] = useState(false)
   const [socket, setSocket] = useState<any>(null)
+  const [collections, setCollections] = useState<Collection[]>([])
+
+  useEffect(() => {
+    // Fetch collections
+    const fetchCollections = async () => {
+      const result = await getCollections()
+      if (result.collections) {
+        setCollections(result.collections)
+      }
+    }
+    fetchCollections()
+  }, [])
 
   useEffect(() => {
     // Get session ID from URL or generate a new one
@@ -92,6 +113,7 @@ export default function AddBookPage() {
           coverUrl: bookData.covers?.[0]
             ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
             : "",
+          collectionId: "",
         })
         setTab("manual")
         toast.success("Book data loaded from scanner!")
@@ -114,10 +136,11 @@ export default function AddBookPage() {
     
     startTransition(async () => {
       try {
-        const { coverUrl, ...rest } = formData;
+        const { coverUrl, collectionId, ...rest } = formData;
         const result = await addBook({
           ...rest,
           coverImage: formData.coverUrl,
+          collectionId: formData.collectionId || undefined,
         })
         if (result && result.error) {
           toast("Failed to add book", { description: result.error })
@@ -132,6 +155,7 @@ export default function AddBookPage() {
           isbn: "",
           description: "",
           coverUrl: "",
+          collectionId: "",
         })
         setIsSubmitting(false)
       } catch (error) {
@@ -165,6 +189,7 @@ export default function AddBookPage() {
         coverUrl: bookData.covers?.[0]
           ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
           : "",
+        collectionId: "",
       })
       setTab("manual")
     } catch (err: any) {
@@ -188,90 +213,98 @@ export default function AddBookPage() {
           <TabsTrigger value="isbn">ISBN Lookup</TabsTrigger>
         </TabsList>
         <TabsContent value="manual">
-          <div className="flex flex-col md:flex-row gap-8">
-            <form onSubmit={handleSubmit} className="flex-1 space-y-6" noValidate>
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <div>
-                <label htmlFor="author" className="block text-sm font-medium">
-                  Author
-                </label>
-                <input
-                  type="text"
-                  id="author"
-                  value={formData.author}
-                  onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                  required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <div>
-                <label htmlFor="isbn" className="block text-sm font-medium">
-                  ISBN
-                </label>
-                <input
-                  type="text"
-                  id="isbn"
-                  value={formData.isbn}
-                  onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
-                  required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <div>
-                <label htmlFor="coverUrl" className="block text-sm font-medium">
-                  Cover Image URL
-                </label>
-                <input
-                  type="text"
-                  id="coverUrl"
-                  value={formData.coverUrl}
-                  onChange={(e) => setFormData({ ...formData, coverUrl: e.target.value })}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                  placeholder="https://..."
-                />
-              </div>
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isSubmitting || isPending}
-                className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                Title
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="author" className="block text-sm font-medium text-gray-700">
+                Author
+              </label>
+              <input
+                type="text"
+                id="author"
+                value={formData.author}
+                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="isbn" className="block text-sm font-medium text-gray-700">
+                ISBN
+              </label>
+              <input
+                type="text"
+                id="isbn"
+                value={formData.isbn}
+                onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                Description
+              </label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={4}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="coverUrl" className="block text-sm font-medium text-gray-700">
+                Cover Image URL
+              </label>
+              <input
+                type="url"
+                id="coverUrl"
+                value={formData.coverUrl}
+                onChange={(e) => setFormData({ ...formData, coverUrl: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="collection" className="block text-sm font-medium text-gray-700">
+                Collection
+              </label>
+              <Select
+                value={formData.collectionId}
+                onValueChange={(value) => setFormData({ ...formData, collectionId: value })}
               >
-                {isSubmitting || isPending ? "Adding..." : "Add Book"}
-              </button>
-            </form>
-            {formData.coverUrl && (
-              <div className="flex-shrink-0 flex justify-center md:items-start md:mt-0 mt-8">
-                <img
-                  src={formData.coverUrl}
-                  alt="Book cover"
-                  className="h-64 w-auto object-contain border rounded shadow"
-                />
-              </div>
-            )}
-          </div>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a collection" />
+                </SelectTrigger>
+                <SelectContent>
+                  {collections.map((collection) => (
+                    <SelectItem key={collection.id} value={collection.id}>
+                      {collection.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting || isPending}
+              className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              {isSubmitting || isPending ? "Adding..." : "Add Book"}
+            </button>
+          </form>
         </TabsContent>
         <TabsContent value="isbn">
           <div className="space-y-4">
