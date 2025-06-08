@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Html5QrcodeScanner } from "html5-qrcode"
 import { io } from "socket.io-client"
 
-export default function ScannerPage() {
+function ScannerPageContent() {
   const [isConnected, setIsConnected] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [lastScanned, setLastScanned] = useState("")
@@ -125,5 +125,13 @@ export default function ScannerPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function ScannerPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ScannerPageContent />
+    </Suspense>
   )
 } 

@@ -1,32 +1,28 @@
-import { getServerSession } from "next-auth"
-import { redirect } from "next/navigation"
-import { authOptions } from "@/lib/auth"
+import { Suspense } from "react"
 import { getBooks } from "@/app/actions/books"
 import { BookGrid } from "@/components/book-grid"
 import { LibraryFilters } from "@/components/library-filters"
 
-interface LibraryPageProps {
-  searchParams: {
-    search?: string
-    sortBy?: string
-    sortOrder?: string
-    page?: string
-  }
+type SortBy = "title" | "author" | "createdAt"
+type SortOrder = "asc" | "desc"
+
+type Props = {
+  params: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export default async function LibraryPage({ searchParams }: LibraryPageProps) {
-  const session = await getServerSession(authOptions)
+export default async function LibraryPage({ searchParams }: Props) {
+  const resolvedSearchParams = await searchParams
+  const search = (resolvedSearchParams.search as string) || ""
+  const sortBy = ((resolvedSearchParams.sortBy as string) || "title") as SortBy
+  const sortOrder = ((resolvedSearchParams.sortOrder as string) || "asc") as SortOrder
+  const page = parseInt((resolvedSearchParams.page as string) || "1")
 
-  if (!session) {
-    redirect("/login")
-  }
-
-  // Use default values directly from searchParams
   const result = await getBooks({
-    search: searchParams.search || "",
-    sortBy: (searchParams.sortBy as "title" | "author" | "createdAt") || "title",
-    sortOrder: (searchParams.sortOrder as "asc" | "desc") || "asc",
-    page: searchParams.page ? parseInt(searchParams.page) : 1,
+    search,
+    sortBy,
+    sortOrder,
+    page
   })
 
   if (result.error) {
@@ -41,11 +37,13 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-8">Library</h1>
       <LibraryFilters />
-      <BookGrid 
-        books={result.books}
-        totalPages={result.totalPages || 1}
-        currentPage={result.currentPage || 1}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <BookGrid 
+          books={result.books || []}
+          totalPages={result.totalPages || 1}
+          currentPage={result.currentPage || 1}
+        />
+      </Suspense>
     </div>
   )
 } 

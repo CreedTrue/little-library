@@ -71,6 +71,10 @@ export async function login(email: string, password: string) {
       return { error: "Invalid email or password" }
     }
 
+    if (!user.password) {
+      return { error: "Invalid email or password" }
+    }
+
     const isPasswordValid = await compare(password, user.password)
 
     if (!isPasswordValid) {

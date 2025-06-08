@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useState, useTransition, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { addBook } from "@/app/actions/books"
 import { getCollections } from "@/app/actions/collections"
@@ -25,7 +25,7 @@ interface Collection {
   description?: string
 }
 
-export default function AddBookPage() {
+function AddBookPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -64,14 +64,19 @@ export default function AddBookPage() {
     }
   }, [])
 
-  useEffect(() => {
-    // Fetch collections
-    const fetchCollections = async () => {
-      const result = await getCollections()
-      if (result.collections) {
-        setCollections(result.collections)
-      }
+  const fetchCollections = async () => {
+    const result = await getCollections()
+    if (result.collections) {
+      /** @ts-ignore */
+      const transformedCollections = result.collections.map((collection) => ({
+        ...collection,
+        description: collection.description || undefined
+      }));
+      setCollections(transformedCollections)
     }
+  }
+
+  useEffect(() => {
     fetchCollections()
   }, [])
 
@@ -216,18 +221,6 @@ export default function AddBookPage() {
       setLookupError("Book not found or error fetching data.")
     } finally {
       setLookupLoading(false)
-    }
-  }
-
-  const fetchCollections = async () => {
-    try {
-      const response = await fetch("/api/collections")
-      if (!response.ok) throw new Error("Failed to fetch collections")
-      const data = await response.json()
-      setCollections(data)
-    } catch (error) {
-      console.error("Error fetching collections:", error)
-      toast.error("Failed to load collections")
     }
   }
 
@@ -384,5 +377,13 @@ export default function AddBookPage() {
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+export default function AddBookPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AddBookPageContent />
+    </Suspense>
   )
 } 
