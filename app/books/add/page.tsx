@@ -7,7 +7,9 @@ import { getCollections } from "@/app/actions/collections"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { io } from "socket.io-client"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select"
+import { CreateCollectionDialog } from "@/components/create-collection-dialog"
+import { Label } from "@/components/ui/label"
 
 interface BookData {
   title: string
@@ -217,6 +219,18 @@ export default function AddBookPage() {
     }
   }
 
+  const fetchCollections = async () => {
+    try {
+      const response = await fetch("/api/collections")
+      if (!response.ok) throw new Error("Failed to fetch collections")
+      const data = await response.json()
+      setCollections(data)
+    } catch (error) {
+      console.error("Error fetching collections:", error)
+      toast.error("Failed to load collections")
+    }
+  }
+
   return (
     <div className="container mx-auto py-10">
       <h1 className="mb-8 text-3xl font-bold">Add New Book</h1>
@@ -297,23 +311,25 @@ export default function AddBookPage() {
                   placeholder="https://..."
                 />
               </div>
-              <div>
-                <label htmlFor="collection" className="block text-sm font-medium">
-                  Collection
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="collection">Collection</Label>
                 <Select
+                  name="collection"
                   value={formData.collectionId}
                   onValueChange={(value) => setFormData({ ...formData, collectionId: value })}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select a collection" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">No Collection</SelectItem>
                     {collections.map((collection) => (
                       <SelectItem key={collection.id} value={collection.id}>
                         {collection.name}
                       </SelectItem>
                     ))}
+                    <SelectSeparator />
+                    <CreateCollectionDialog onCollectionCreated={fetchCollections} />
                   </SelectContent>
                 </Select>
               </div>
