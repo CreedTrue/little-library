@@ -52,6 +52,18 @@ export function ScannerQR() {
         }
         const bookData = await response.json()
         let authorName = "Unknown Author"
+        let description = ""
+
+        // Get the work ID and fetch description
+        const workId = bookData.works?.[0]?.key
+        if (workId) {
+          const workResponse = await fetch(`https://openlibrary.org${workId}.json`)
+          if (workResponse.ok) {
+            const workData = await workResponse.json()
+            description = workData.description?.value || workData.description || ""
+          }
+        }
+
         if (bookData.authors?.[0]?.key) {
           const authorResponse = await fetch(`https://openlibrary.org${bookData.authors[0].key}.json`)
           if (authorResponse.ok) {
@@ -66,7 +78,7 @@ export function ScannerQR() {
           coverUrl: bookData.covers?.[0]
             ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
             : undefined,
-          description: bookData.description?.value || bookData.description || undefined
+          description: description
         }
         setScannedBook(formattedBook)
       } catch (error) {

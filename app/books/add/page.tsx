@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { addBook } from "@/app/actions/books"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -16,6 +16,7 @@ interface BookData {
 
 export default function AddBookPage() {
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [formData, setFormData] = useState({
     title: "",
     author: "",
@@ -47,28 +48,30 @@ export default function AddBookPage() {
     }
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsSubmitting(true)
-    try {
-      const { coverUrl, ...rest } = formData;
-      const result = await addBook({
-        ...rest,
-        coverImage: formData.coverUrl,
-      })
-      if (result && result.error) {
-        toast("Failed to add book", { description: result.error })
+    
+    startTransition(async () => {
+      try {
+        const { coverUrl, ...rest } = formData;
+        const result = await addBook({
+          ...rest,
+          coverImage: formData.coverUrl,
+        })
+        if (result && result.error) {
+          toast("Failed to add book", { description: result.error })
+          setIsSubmitting(false)
+          return
+        }
+        toast.success("Book added successfully!")
+        router.replace("/dashboard")
+      } catch (error) {
+        console.error("Error adding book:", error)
+        toast.error("Failed to add book", { description: "An error occurred while saving." })
         setIsSubmitting(false)
-        return
       }
-      toast("Book added successfully!")
-      setFormData({ title: "", author: "", isbn: "", description: "", coverUrl: "" })
-      setIsSubmitting(false)
-    } catch (error) {
-      console.error("Error adding book:", error)
-      toast("Failed to add book", { description: "An error occurred while saving." })
-      setIsSubmitting(false)
-    }
+    })
   }
 
   const handleIsbnLookup = async () => {
@@ -113,7 +116,7 @@ export default function AddBookPage() {
         </TabsList>
         <TabsContent value="manual">
           <div className="flex flex-col md:flex-row gap-8">
-            <form onSubmit={handleSubmit} className="flex-1 space-y-6">
+            <form onSubmit={handleSubmit} className="flex-1 space-y-6" noValidate>
               <div>
                 <label htmlFor="title" className="block text-sm font-medium">
                   Title
@@ -180,10 +183,10 @@ export default function AddBookPage() {
               </div>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isPending}
                 className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
               >
-                {isSubmitting ? "Adding..." : "Add Book"}
+                {isSubmitting || isPending ? "Adding..." : "Add Book"}
               </button>
             </form>
             {formData.coverUrl && (

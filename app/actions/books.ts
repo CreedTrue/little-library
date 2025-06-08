@@ -25,7 +25,6 @@ export async function addBook(bookData: {
       },
     })
 
-    revalidatePath("/dashboard")
     return { success: true, book }
   } catch (error) {
     console.error("[ADD_BOOK]", error)
