@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { addBook } from "@/app/actions/books"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "sonner"
+import { io } from "socket.io-client"
 
 interface BookData {
   title: string
@@ -16,6 +17,7 @@ interface BookData {
 
 export default function AddBookPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [formData, setFormData] = useState({
     title: "",
@@ -29,24 +31,82 @@ export default function AddBookPage() {
   const [lookupLoading, setLookupLoading] = useState(false)
   const [lookupError, setLookupError] = useState("")
   const [tab, setTab] = useState("manual")
+  const [isConnected, setIsConnected] = useState(false)
+  const [socket, setSocket] = useState<any>(null)
 
   useEffect(() => {
-    // Check for scanned book data
-    const scannedBookData = localStorage.getItem("scannedBook")
-    if (scannedBookData) {
-      const book: BookData = JSON.parse(scannedBookData)
-      setFormData({
-        title: book.title,
-        author: book.author,
-        isbn: book.isbn,
-        description: book.description || "",
-        coverUrl: book.coverUrl || "",
-      })
-      setTab("manual")
-      // Clear the stored data
-      localStorage.removeItem("scannedBook")
+    // Get session ID from URL or generate a new one
+    const sessionId = searchParams.get("session") || Math.random().toString(36).substring(7)
+    
+    // Initialize socket connection
+    const socketInstance = io({
+      path: "/api/socket",
+      query: { sessionId },
+    })
+
+    socketInstance.on("connect", () => {
+      console.log("Socket connected")
+      setIsConnected(true)
+    })
+
+    socketInstance.on("disconnect", () => {
+      console.log("Socket disconnected")
+      setIsConnected(false)
+    })
+
+    socketInstance.on("scan-barcode", async (data: { isbn: string }) => {
+      console.log("Received scan-barcode event", data)
+      const isbn = data.isbn
+      try {
+        const response = await fetch(`https://openlibrary.org/isbn/${isbn}.json`)
+        if (!response.ok) {
+          throw new Error("Book not found")
+        }
+        const bookData = await response.json()
+        let authorName = "Unknown Author"
+        let description = ""
+
+        // Get the work ID and fetch description
+        const workId = bookData.works?.[0]?.key
+        if (workId) {
+          const workResponse = await fetch(`https://openlibrary.org${workId}.json`)
+          if (workResponse.ok) {
+            const workData = await workResponse.json()
+            description = workData.description?.value || workData.description || ""
+          }
+        }
+
+        if (bookData.authors?.[0]?.key) {
+          const authorResponse = await fetch(`https://openlibrary.org${bookData.authors[0].key}.json`)
+          if (authorResponse.ok) {
+            const authorData = await authorResponse.json()
+            authorName = authorData.name
+          }
+        }
+
+        setFormData({
+          title: bookData.title || "Unknown Title",
+          author: authorName,
+          isbn: isbn,
+          description: description,
+          coverUrl: bookData.covers?.[0]
+            ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
+            : "",
+        })
+        setTab("manual")
+        toast.success("Book data loaded from scanner!")
+      } catch (error) {
+        console.error("Error fetching book data:", error)
+        toast.error("Failed to fetch book data")
+      }
+    })
+
+    setSocket(socketInstance)
+
+    return () => {
+      socketInstance.disconnect()
     }
-  }, [])
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -65,7 +125,15 @@ export default function AddBookPage() {
           return
         }
         toast.success("Book added successfully!")
-        router.replace("/dashboard")
+        // Reset form data
+        setFormData({
+          title: "",
+          author: "",
+          isbn: "",
+          description: "",
+          coverUrl: "",
+        })
+        setIsSubmitting(false)
       } catch (error) {
         console.error("Error adding book:", error)
         toast.error("Failed to add book", { description: "An error occurred while saving." })
@@ -109,6 +177,11 @@ export default function AddBookPage() {
   return (
     <div className="container mx-auto py-10">
       <h1 className="mb-8 text-3xl font-bold">Add New Book</h1>
+      {isConnected && (
+        <div className="mb-4 p-2 bg-green-100 text-green-800 rounded-md">
+          Scanner connected - Ready to scan books
+        </div>
+      )}
       <Tabs value={tab} onValueChange={setTab} className="max-w-2xl">
         <TabsList>
           <TabsTrigger value="manual">Manual Entry</TabsTrigger>
