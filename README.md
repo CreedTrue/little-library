@@ -20,6 +20,35 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Features
+
+### Password Reset Functionality
+
+The application includes a complete password reset system:
+
+1. **Forgot Password**: Users can request a password reset by visiting `/forgot-password`
+2. **Reset Token**: A secure token is generated and stored in the database with a 1-hour expiration
+3. **Reset Password**: Users can set a new password using the reset link sent to their email
+4. **Security**: Tokens are automatically cleared after use or expiration
+
+**Note**: The application uses Resend to send password reset emails. Make sure to configure your `RESEND_API_KEY` in the environment variables.
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Database
+DATABASE_URL="file:./dev.db"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-here"
+
+# Email (Resend)
+RESEND_API_KEY="your-resend-api-key"
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
