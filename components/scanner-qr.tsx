@@ -28,11 +28,19 @@ export function ScannerQR() {
     // Initialize socket connection
     const socketInstance = io(process.env.NEXT_PUBLIC_YOUR_DOMAIN || "http://localhost:3000", {
       path: "/api/socket",
+      query: { sessionId: newSessionId },
     })
 
     socketInstance.on("connect", () => {
       console.log("Connected to socket server", socketInstance.id)
       setIsConnected(true)
+    })
+
+    // Listen for scanner device connection
+    socketInstance.on("scanner-connected", () => {
+      console.log("Scanner device connected to desktop")
+      // Automatically route to add book page when scanner connects
+      router.push(`/books/add?session=${newSessionId}`)
     })
 
     socketInstance.on("disconnect", () => {
@@ -102,7 +110,9 @@ export function ScannerQR() {
     }
   }
 
-  const connectionUrl = `${window.location.origin}/scanner?session=${sessionId}`
+  const connectionUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/scanner?session=${sessionId}`
+    : `/scanner?session=${sessionId}`
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
@@ -111,11 +121,16 @@ export function ScannerQR() {
       </div>
       <div className="text-center">
         <p className="text-sm text-gray-500">
-          {isConnected ? "Scanner connected" : "Waiting for scanner..."}
+          {isConnected ? "Ready for scanner" : "Waiting for scanner..."}
         </p>
         <p className="mt-2 text-xs text-gray-400">
           Scan this QR code with your phone to connect
         </p>
+        {isConnected && (
+          <p className="mt-2 text-xs text-green-600">
+            Desktop will automatically open add book page when scanner connects
+          </p>
+        )}
       </div>
       {scannedBook && (
         <div className="mt-4 w-full rounded-lg border bg-card p-4">

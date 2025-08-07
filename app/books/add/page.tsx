@@ -46,6 +46,12 @@ function AddBookPageContent() {
   const [socket, setSocket] = useState<any>(null)
   const [collections, setCollections] = useState<Collection[]>([])
   const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false)
+  const [scannerConnected, setScannerConnected] = useState(false)
+
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log("State changed - isConnected:", isConnected, "scannerConnected:", scannerConnected)
+  }, [isConnected, scannerConnected])
 
   useEffect(() => {
     // Check for scanned book data from dashboard
@@ -91,26 +97,57 @@ function AddBookPageContent() {
     const sessionId = searchParams.get("session") || Math.random().toString(36).substring(7)
     
     // Initialize socket connection
-    const socketInstance = io({
+    const socketInstance = io(process.env.NEXT_PUBLIC_YOUR_DOMAIN || "http://localhost:3000", {
       path: "/api/socket",
       query: { sessionId },
     })
 
     socketInstance.on("connect", () => {
-      console.log("Socket connected")
+      console.log("Socket connected with ID:", socketInstance.id)
+      console.log("Session ID:", sessionId)
       setIsConnected(true)
     })
 
     socketInstance.on("disconnect", () => {
       console.log("Socket disconnected")
       setIsConnected(false)
+      setScannerConnected(false)
     })
 
-    socketInstance.on("scan-barcode", async (data: { isbn: string }) => {
+    // Listen for scanner device connection
+    socketInstance.on("scanner-connected", () => {
+      console.log("Received scanner-connected event")
+      setScannerConnected(true)
+    })
+
+    socketInstance.on("scanner-disconnected", () => {
+      console.log("Received scanner-disconnected event")
+      setScannerConnected(false)
+    })
+
+    socketInstance.on("scan-barcode", async (data: { isbn: string } | string) => {
       console.log("Received scan-barcode event", data)
-      const isbn = data.isbn
+      console.log("Current session ID:", sessionId)
+      console.log("Socket ID:", socketInstance.id)
+      
+      // Handle both object format and direct string format
+      const isbn = typeof data === 'string' ? data : data.isbn
+      console.log("Processing ISBN:", isbn)
+      
+      // Show loading toast
+      toast.loading("Searching for book information...")
+      
       try {
-        const response = await fetch(`https://openlibrary.org/isbn/${isbn}.json`)
+        // Try the provided ISBN first
+        let response = await fetch(`https://openlibrary.org/isbn/${isbn}.json`)
+        
+        // If that fails and it's a converted ISBN-13, try the original UPC-A
+        if (!response.ok && isbn.startsWith('978') && isbn.length === 13) {
+          const originalUpc = isbn.substring(3, 12) // Remove 978 prefix and check digit
+          console.log("Trying original UPC-A:", originalUpc)
+          response = await fetch(`https://openlibrary.org/isbn/${originalUpc}.json`)
+        }
+        
         if (!response.ok) {
           throw new Error("Book not found")
         }
@@ -147,9 +184,11 @@ function AddBookPageContent() {
           collectionId: "",
         })
         setTab("manual")
+        toast.dismiss()
         toast.success("Book data loaded from scanner!")
       } catch (error) {
         console.error("Error fetching book data:", error)
+        toast.dismiss()
         toast.error("Failed to fetch book data")
       }
     })
@@ -240,9 +279,17 @@ function AddBookPageContent() {
   return (
     <div className="container mx-auto py-10">
       <h1 className="mb-8 text-3xl font-bold">Add New Book</h1>
-      {isConnected && (
+      {scannerConnected ? (
         <div className="mb-4 p-2 bg-green-100 text-green-800 rounded-md">
           Scanner connected - Ready to scan books
+        </div>
+      ) : isConnected ? (
+        <div className="mb-4 p-2 bg-blue-100 text-blue-800 rounded-md">
+          Waiting for scanner - Scan the QR code with your phone to connect a scanner
+        </div>
+      ) : (
+        <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 rounded-md">
+          Connecting to scanner service...
         </div>
       )}
       <Tabs value={tab} onValueChange={setTab} className="max-w-2xl">
