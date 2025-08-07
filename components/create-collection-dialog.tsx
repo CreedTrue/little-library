@@ -18,17 +18,24 @@ import { createCollection } from "@/app/actions/collections"
 import { toast } from "sonner"
 
 interface CreateCollectionDialogProps {
-  onCollectionCreated: () => void
+  onCollectionCreated: (collectionId?: string) => void
+  onOpenChange?: (open: boolean) => void
 }
 
-export function CreateCollectionDialog({ onCollectionCreated }: CreateCollectionDialogProps) {
+export function CreateCollectionDialog({ onCollectionCreated, onOpenChange }: CreateCollectionDialogProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen)
+    onOpenChange?.(newOpen)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    e.stopPropagation() // Prevent form submission from bubbling up
     setIsLoading(true)
 
     try {
@@ -42,7 +49,9 @@ export function CreateCollectionDialog({ onCollectionCreated }: CreateCollection
       setName("")
       setDescription("")
       setOpen(false)
-      onCollectionCreated()
+      onOpenChange?.(false)
+      // Pass the created collection ID to the callback
+      onCollectionCreated(result.collection?.id)
     } catch (error) {
       toast.error("Failed to create collection")
     } finally {
@@ -51,9 +60,19 @@ export function CreateCollectionDialog({ onCollectionCreated }: CreateCollection
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full justify-start">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start"
+          type="button" // Explicitly set button type to prevent form submission
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setOpen(true)
+            onOpenChange?.(true)
+          }}
+        >
           Create New Collection
         </Button>
       </DialogTrigger>

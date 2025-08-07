@@ -45,6 +45,7 @@ function AddBookPageContent() {
   const [isConnected, setIsConnected] = useState(false)
   const [socket, setSocket] = useState<any>(null)
   const [collections, setCollections] = useState<Collection[]>([])
+  const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false)
 
   useEffect(() => {
     // Check for scanned book data from dashboard
@@ -64,7 +65,7 @@ function AddBookPageContent() {
     }
   }, [])
 
-  const fetchCollections = async () => {
+  const fetchCollections = async (newCollectionId?: string) => {
     const result = await getCollections()
     if (result.collections) {
       /** @ts-ignore */
@@ -73,6 +74,11 @@ function AddBookPageContent() {
         description: collection.description || undefined
       }));
       setCollections(transformedCollections)
+      
+      // If a new collection was created, automatically select it
+      if (newCollectionId) {
+        setFormData(prev => ({ ...prev, collectionId: newCollectionId }))
+      }
     }
   }
 
@@ -157,6 +163,13 @@ function AddBookPageContent() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    e.stopPropagation() // Prevent any bubbling
+    
+    // Prevent form submission if collection dialog is open
+    if (isCollectionDialogOpen) {
+      return
+    }
+    
     setIsSubmitting(true)
     
     startTransition(async () => {
@@ -322,7 +335,10 @@ function AddBookPageContent() {
                       </SelectItem>
                     ))}
                     <SelectSeparator />
-                    <CreateCollectionDialog onCollectionCreated={fetchCollections} />
+                    <CreateCollectionDialog 
+                      onCollectionCreated={fetchCollections} 
+                      onOpenChange={setIsCollectionDialogOpen}
+                    />
                   </SelectContent>
                 </Select>
               </div>
