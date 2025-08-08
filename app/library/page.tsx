@@ -2,6 +2,9 @@ import { Suspense } from "react"
 import { getBooks } from "@/app/actions/books"
 import { BookGrid } from "@/components/book-grid"
 import { LibraryFilters } from "@/components/library-filters"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
 
 type SortBy = "title" | "author" | "createdAt"
 type SortOrder = "asc" | "desc"
@@ -12,6 +15,11 @@ type Props = {
 }
 
 export default async function LibraryPage({ searchParams }: Props) {
+
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    redirect("/login")
+  }
   const resolvedSearchParams = await searchParams
   const search = (resolvedSearchParams.search as string) || ""
   const sortBy = ((resolvedSearchParams.sortBy as string) || "title") as SortBy
