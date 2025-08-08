@@ -21,34 +21,55 @@ export function AdminSetupForm({
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
   const router = useRouter()
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    
+    if (isLoading || isSuccess) {
+      return
+    }
+    
     setIsLoading(true)
     setError(null)
 
-    const formData = new FormData(event.currentTarget)
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-    const confirmPassword = formData.get("confirmPassword") as string
+    try {
+      const formData = new FormData(event.currentTarget)
+      const email = formData.get("email") as string
+      const password = formData.get("password") as string
+      const confirmPassword = formData.get("confirmPassword") as string
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match")
+      if (password !== confirmPassword) {
+        setError("Passwords do not match")
+        setIsLoading(false)
+        return
+      }
+
+      console.log("Calling setupAdminAccount...")
+      const result = await setupAdminAccount(email, password)
+      console.log("setupAdminAccount result:", result)
+
+      if (result.error) {
+        setError(result.error)
+        setIsLoading(false)
+        return
+      }
+
+      console.log("Admin account created successfully!")
+      setIsSuccess(true)
       setIsLoading(false)
-      return
-    }
-
-    const result = await setupAdminAccount(email, password)
-
-    if (result.error) {
-      setError(result.error)
+      
+      // Show success message briefly, then redirect
+      setTimeout(() => {
+        console.log("Redirecting to login page...")
+        window.location.href = "/login"
+      }, 1500)
+    } catch (error) {
+      console.error("Error in onSubmit:", error)
+      setError("An unexpected error occurred. Please try again.")
       setIsLoading(false)
-      return
     }
-
-    // Redirect to login page after successful setup
-    router.push("/login")
   }
 
   return (
@@ -96,9 +117,14 @@ export function AdminSetupForm({
                   {error}
                 </div>
               )}
+              {isSuccess && (
+                <div className="text-sm text-green-500">
+                  Admin account created successfully! Redirecting to login...
+                </div>
+              )}
               <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create Admin Account"}
+                <Button type="submit" className="w-full" disabled={isLoading || isSuccess}>
+                  {isLoading ? "Creating..." : isSuccess ? "Created!" : "Create Admin Account"}
                 </Button>
               </div>
             </div>

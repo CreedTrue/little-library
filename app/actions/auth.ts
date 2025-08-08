@@ -34,16 +34,22 @@ export async function registerUser(email: string, password: string, name?: strin
 
 export async function setupAdminAccount(email: string, password: string) {
   try {
+    console.log("setupAdminAccount called with email:", email)
+    
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
 
     if (existingUser) {
+      console.log("User already exists")
       return { error: "Admin account already exists" }
     }
 
+    console.log("Hashing password...")
     const hashedPassword = await hash(password, 12)
+    console.log("Password hashed successfully")
 
+    console.log("Creating user in database...")
     const user = await prisma.user.create({
       data: {
         email,
@@ -51,9 +57,13 @@ export async function setupAdminAccount(email: string, password: string) {
         name: "Admin"
       }
     })
+    console.log("User created successfully:", user.id)
 
+    console.log("Revalidating path...")
     revalidatePath("/login")
+    console.log("Path revalidated")
 
+    console.log("Returning user object:", { id: user.id, email: user.email, name: user.name })
     return { user }
   } catch (error) {
     console.error("Error setting up admin account:", error)
