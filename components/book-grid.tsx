@@ -5,8 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Star } from "lucide-react"
+import { Star, Edit } from "lucide-react"
 import { BookDetailsDialog } from "./book-details-dialog"
+import { EditBookForm } from "./edit-book-form"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Book {
   id: string
@@ -29,6 +36,8 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
   const searchParams = useSearchParams()
   const [selectedBook, setSelectedBook] = useState<Book | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingBook, setEditingBook] = useState<Book | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
 
   const createQueryString = (params: Record<string, string>) => {
     const newParams = new URLSearchParams(searchParams.toString())
@@ -41,6 +50,22 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
   const handleViewDetails = (book: Book) => {
     setSelectedBook(book)
     setDialogOpen(true)
+  }
+
+  const handleEditBook = (book: Book) => {
+    setEditingBook(book)
+    setEditDialogOpen(true)
+  }
+
+  const handleEditSuccess = () => {
+    setEditDialogOpen(false)
+    setEditingBook(null)
+    router.refresh()
+  }
+
+  const handleEditCancel = () => {
+    setEditDialogOpen(false)
+    setEditingBook(null)
   }
 
   return (
@@ -73,13 +98,24 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
               )}
             </CardContent>
             <CardFooter className="p-4 pt-0">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => handleViewDetails(book)}
-              >
-                View Details
-              </Button>
+              <div className="flex gap-2 w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => handleEditBook(book)}
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => handleViewDetails(book)}
+                >
+                  View
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         ))}
@@ -111,12 +147,28 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
           </Button>
         </div>
       )}
+      
       {selectedBook && (
         <BookDetailsDialog
           book={selectedBook}
           isOpen={dialogOpen}
           onClose={() => setDialogOpen(false)}
         />
+      )}
+      
+      {editingBook && (
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Book: {editingBook.title}</DialogTitle>
+            </DialogHeader>
+            <EditBookForm
+              book={editingBook}
+              onSuccess={handleEditSuccess}
+              onCancel={handleEditCancel}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

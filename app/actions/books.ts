@@ -266,4 +266,64 @@ export async function removeBook(bookId: string) {
     console.error("Error removing book:", error)
     return { error: "Failed to remove book" }
   }
+}
+
+export async function updateBook(bookId: string, data: {
+  title?: string
+  author?: string
+  isbn?: string
+  description?: string
+  coverImage?: string
+}) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return { error: "Not authenticated" }
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
+
+    if (!user) {
+      return { error: "User not found" }
+    }
+
+    // Verify the book belongs to the user
+    const existingBook = await prisma.book.findUnique({
+      where: { id: bookId },
+      select: { userId: true },
+    })
+
+    if (!existingBook) {
+      return { error: "Book not found" }
+    }
+
+    if (existingBook.userId !== user.id) {
+      return { error: "Not authorized to update this book" }
+    }
+
+    // Update the book
+    const updatedBook = await prisma.book.update({
+      where: { id: bookId },
+      data: {
+        ...data,
+        updatedAt: new Date(),
+      },
+      include: {
+        collections: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    })
+
+    revalidatePath("/library")
+    return { book: updatedBook }
+  } catch (error) {
+    console.error("Error updating book:", error)
+    return { error: "Failed to update book" }
+  }
 } 
