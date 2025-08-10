@@ -57,9 +57,20 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
     setEditDialogOpen(true)
   }
 
-  const handleEditSuccess = () => {
+  const handleEditSuccess = (updatedBook: any) => {
     setEditDialogOpen(false)
     setEditingBook(null)
+    
+    // Update the book in the books array if it exists
+    const updatedBooks = books.map(book => 
+      book.id === updatedBook.id ? updatedBook : book
+    )
+    
+    // Update the selected book if it's the same book
+    if (selectedBook && selectedBook.id === updatedBook.id) {
+      setSelectedBook(updatedBook)
+    }
+    
     router.refresh()
   }
 

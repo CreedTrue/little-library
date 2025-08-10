@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Star, Trash2, Edit, X } from "lucide-react"
 import {
@@ -42,6 +42,11 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
   const [currentBook, setCurrentBook] = useState(book)
   const router = useRouter()
 
+  // Update currentBook when the book prop changes
+  useEffect(() => {
+    setCurrentBook(book)
+  }, [book])
+
   const handleRemove = async () => {
     setIsRemoving(true)
     try {
@@ -62,6 +67,7 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
   }
 
   const handleEditSuccess = (updatedBook: any) => {
+    // Update the current book with the fresh data from the server
     setCurrentBook(updatedBook)
     setIsEditing(false)
     router.refresh()
@@ -78,7 +84,7 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle className="text-2xl">{currentBook.title}</DialogTitle>
-              <div className="flex gap-2">
+              <div className="flex gap-2 px-6">
                 {!isEditing && (
                   <Button
                     variant="outline"
@@ -89,13 +95,6 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
                     Edit
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
               </div>
             </div>
           </DialogHeader>
