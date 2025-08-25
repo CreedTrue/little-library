@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,14 +15,33 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { addBook, lookupBookByIsbn } from "@/app/actions/books"
+import { getCollections } from "@/app/actions/collections"
+import { CollectionSelector } from "./collection-selector"
 import Image from "next/image"
+
+interface Collection {
+  id: string
+  name: string
+}
 
 export function AddBookForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isbnData, setIsbnData] = useState<any>(null)
   const [activeTab, setActiveTab] = useState("manual")
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([])
   const router = useRouter()
+
+  useEffect(() => {
+    async function fetchCollections() {
+      const result = await getCollections()
+      if (result.collections) {
+        setCollections(result.collections)
+      }
+    }
+    fetchCollections()
+  }, [])
 
   async function handleIsbnLookup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -60,6 +79,7 @@ export function AddBookForm() {
       isbn: formData.get("isbn") as string,
       description: formData.get("description") as string,
       coverImage: formData.get("coverImage") as string,
+      collectionIds: selectedCollectionIds,
     }
 
     try {
@@ -147,6 +167,14 @@ export function AddBookForm() {
                     name="coverImage"
                     type="url"
                     defaultValue={isbnData?.coverImage}
+                  />
+                </div>
+                <div className="grid gap-3">
+                  <Label>Collections</Label>
+                  <CollectionSelector
+                    collections={collections}
+                    selectedCollectionIds={selectedCollectionIds}
+                    onSelectionChange={setSelectedCollectionIds}
                   />
                 </div>
                 {error && (

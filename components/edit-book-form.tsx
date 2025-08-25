@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -13,8 +13,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { updateBook } from "@/app/actions/books"
+import { getCollections } from "@/app/actions/collections"
+import { CollectionSelector } from "./collection-selector"
 import { toast } from "sonner"
 import Image from "next/image"
+
+interface Collection {
+  id: string
+  name: string
+}
 
 interface EditBookFormProps {
   book: {
@@ -24,6 +31,7 @@ interface EditBookFormProps {
     isbn?: string | null
     description?: string | null
     coverImage?: string | null
+    collections?: Collection[]
   }
   onSuccess: (updatedBook: any) => void
   onCancel: () => void
@@ -32,6 +40,10 @@ interface EditBookFormProps {
 export function EditBookForm({ book, onSuccess, onCancel }: EditBookFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(
+    book.collections?.map((c) => c.id) || []
+  )
   const [formData, setFormData] = useState({
     title: book.title,
     author: book.author,
@@ -40,13 +52,26 @@ export function EditBookForm({ book, onSuccess, onCancel }: EditBookFormProps) {
     coverImage: book.coverImage || "",
   })
 
+  useEffect(() => {
+    async function fetchCollections() {
+      const result = await getCollections()
+      if (result.collections) {
+        setCollections(result.collections)
+      }
+    }
+    fetchCollections()
+  }, [])
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setIsLoading(true)
     setError(null)
 
     try {
-      const result = await updateBook(book.id, formData)
+      const result = await updateBook(book.id, {
+        ...formData,
+        collectionIds: selectedCollectionIds,
+      })
       if (result.error) {
         setError(result.error)
         return
@@ -141,6 +166,15 @@ export function EditBookForm({ book, onSuccess, onCancel }: EditBookFormProps) {
                 value={formData.coverImage}
                 onChange={(e) => handleInputChange("coverImage", e.target.value)}
                 placeholder="https://example.com/cover-image.jpg"
+              />
+            </div>
+
+            <div className="grid gap-3">
+              <Label>Collections</Label>
+              <CollectionSelector
+                collections={collections}
+                selectedCollectionIds={selectedCollectionIds}
+                onSelectionChange={setSelectedCollectionIds}
               />
             </div>
             

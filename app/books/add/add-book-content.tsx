@@ -7,9 +7,9 @@ import { getCollections } from "@/app/actions/collections"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { io } from "socket.io-client"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select"
 import { CreateCollectionDialog } from "@/components/create-collection-dialog"
 import { Label } from "@/components/ui/label"
+import { CollectionSelector } from "@/components/collection-selector"
 
 interface BookData {
   title: string
@@ -35,8 +35,8 @@ export default function AddBookPageContent() {
     isbn: "",
     description: "",
     coverUrl: "",
-    collectionId: "",
   })
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isbnLookup, setIsbnLookup] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
@@ -64,8 +64,8 @@ export default function AddBookPageContent() {
         isbn: book.isbn,
         description: book.description || "",
         coverUrl: book.coverUrl || "",
-        collectionId: "",
       })
+      setSelectedCollectionIds([])
       // Clear the stored data
       localStorage.removeItem("scannedBook")
     }
@@ -83,7 +83,10 @@ export default function AddBookPageContent() {
       
       // If a new collection was created, automatically select it
       if (newCollectionId) {
-        setFormData(prev => ({ ...prev, collectionId: newCollectionId }))
+        // If a new collection was created, automatically select it
+        if (newCollectionId) {
+          setSelectedCollectionIds(prev => [...prev, newCollectionId])
+        }
       }
     }
   }
@@ -181,8 +184,8 @@ export default function AddBookPageContent() {
           coverUrl: bookData.covers?.[0]
             ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
             : "",
-          collectionId: "",
         })
+        setSelectedCollectionIds([])
         setTab("manual")
         toast.dismiss()
         toast.success("Book data loaded from scanner!")
@@ -213,11 +216,11 @@ export default function AddBookPageContent() {
     
     startTransition(async () => {
       try {
-        const { coverUrl, collectionId, ...rest } = formData;
+        const { coverUrl, ...rest } = formData;
         const result = await addBook({
           ...rest,
           coverImage: formData.coverUrl,
-          collectionId: formData.collectionId || undefined,
+          collectionIds: selectedCollectionIds,
         })
         if (result && result.error) {
           toast("Failed to add book", { description: result.error })
@@ -232,8 +235,8 @@ export default function AddBookPageContent() {
           isbn: "",
           description: "",
           coverUrl: "",
-          collectionId: "",
         })
+        setSelectedCollectionIds([])
         setIsSubmitting(false)
       } catch (error) {
         console.error("Error adding book:", error)
@@ -266,8 +269,8 @@ export default function AddBookPageContent() {
         coverUrl: bookData.covers?.[0]
           ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
           : "",
-        collectionId: "",
       })
+      setSelectedCollectionIds([])
       setTab("manual")
     } catch (err: any) {
       setLookupError("Book not found or error fetching data.")
@@ -365,29 +368,18 @@ export default function AddBookPageContent() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="collection">Collection</Label>
-                <Select
-                  name="collection"
-                  value={formData.collectionId}
-                  onValueChange={(value) => setFormData({ ...formData, collectionId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a collection" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Collection</SelectItem>
-                    {collections.map((collection) => (
-                      <SelectItem key={collection.id} value={collection.id}>
-                        {collection.name}
-                      </SelectItem>
-                    ))}
-                    <SelectSeparator />
-                    <CreateCollectionDialog 
-                      onCollectionCreated={fetchCollections} 
-                      onOpenChange={setIsCollectionDialogOpen}
-                    />
-                  </SelectContent>
-                </Select>
+                <Label>Collections</Label>
+                <CollectionSelector
+                  collections={collections}
+                  selectedCollectionIds={selectedCollectionIds}
+                  onSelectionChange={setSelectedCollectionIds}
+                />
+                <div className="mt-2">
+                  <CreateCollectionDialog
+                    onCollectionCreated={fetchCollections}
+                    onOpenChange={setIsCollectionDialogOpen}
+                  />
+                </div>
               </div>
               <button
                 type="submit"
