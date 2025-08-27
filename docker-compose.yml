@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: little-library
+    ports:
+      - "3000:3000"
+    volumes:
+      # This bind mount persists the database file in a `data` directory on the host machine.
+      - ./data:/app/data
+    environment:
+      # This points Prisma to the database file inside the container.
+      - DATABASE_URL=file:/app/data/dev.db
+    env_file:
+      - .env
+    restart: unless-stopped

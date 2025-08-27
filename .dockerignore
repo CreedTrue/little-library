@@ -1,0 +1,34 @@
+# Dependencies
+node_modules
+
+# Next.js build output
+.next
+
+# Database files
+prisma/dev.db
+prisma/dev.db-journal
+prisma/dev.db-wal
+
+# Local environment variables
+.env
+.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Data directory
+data/
+
+# Sentry
+sentry.properties

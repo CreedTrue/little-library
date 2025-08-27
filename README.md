@@ -36,9 +36,54 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Environment Variables
+## Running with Docker
 
-Create a `.env` file in the root directory with the following variables:
+This is the recommended way to run the application in production.
+
+### Prerequisites
+
+*   [Docker](https://docs.docker.com/get-docker/)
+*   [Docker Compose](https://docs.docker.com/compose/install/)
+
+### 1. Create an Environment File
+
+Create a file named `.env` in the root of the project and add the following environment variables.
+
+```env
+# NextAuth - A secret key for signing tokens.
+# Generate a random secret with: openssl rand -hex 32
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-here"
+
+# Email (Resend) - for password reset
+RESEND_API_KEY="your-resend-api-key"
+```
+
+### 2. Build and Run the Application
+
+Run the following command to build the Docker image and start the application:
+
+```bash
+docker-compose up --build -d
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000).
+
+### Database Persistence
+
+The SQLite database file is stored in the `data/` directory on your local machine. This directory is created automatically. You can back up this directory to save your library data.
+
+### Stopping the Application
+
+To stop the application, run:
+
+```bash
+docker-compose down
+```
+
+## Environment Variables (for local development)
+
+If you are not using Docker, create a `.env` file in the root directory with the following variables:
 
 ```env
 # Database
