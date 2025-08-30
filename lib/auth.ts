@@ -47,6 +47,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
+          role: user.role,
         }
       }
     })
@@ -60,17 +61,33 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }: { session: Session; token: JWT }) {
       if (token) {
-        session.user.id = token.id as string;
-        session.user.name = token.name as string;
-        session.user.email = token.email as string;
+        session.user.id = token.id as string
+        session.user.name = token.name
+        session.user.email = token.email
+        session.user.role = token.role as "USER" | "ADMIN"
       }
-      return session;
+      return session
     },
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+      const dbUser = await prisma.user.findFirst({
+        where: {
+          email: token.email,
+        },
+      })
+
+      if (!dbUser) {
+        if (user) {
+          token.id = user?.id
+        }
+        return token
       }
-      return token;
-    }
-  }
+
+      return {
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        role: dbUser.role,
+      }
+    },
+  },
 } 

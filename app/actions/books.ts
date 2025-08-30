@@ -11,7 +11,7 @@ interface AddBookData {
   isbn?: string
   description?: string
   coverImage?: string
-  collectionId?: string
+  collectionIds?: string[]
 }
 
 export async function addBook(data: {
@@ -20,7 +20,7 @@ export async function addBook(data: {
   isbn: string
   description?: string
   coverImage?: string
-  collectionId?: string
+  collectionIds?: string[]
 }) {
   try {
     const session = await getServerSession(authOptions)
@@ -36,24 +36,24 @@ export async function addBook(data: {
       return { error: "User not found" }
     }
 
-    const { collectionId, ...bookData } = data
+    const { collectionIds, ...bookData } = data
 
     const book = await prisma.book.create({
       data: {
         ...bookData,
         userId: user.id,
-        collections: collectionId ? {
-          connect: { id: collectionId }
-        } : undefined
+        collections: {
+          connect: collectionIds?.map((id) => ({ id })),
+        },
       },
       include: {
         collections: {
           select: {
             id: true,
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     })
 
     return { book }
@@ -268,13 +268,17 @@ export async function removeBook(bookId: string) {
   }
 }
 
-export async function updateBook(bookId: string, data: {
-  title?: string
-  author?: string
-  isbn?: string
-  description?: string
-  coverImage?: string
-}) {
+export async function updateBook(
+  bookId: string,
+  data: {
+    title?: string
+    author?: string
+    isbn?: string
+    description?: string
+    coverImage?: string
+    collectionIds?: string[]
+  }
+) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
@@ -289,7 +293,6 @@ export async function updateBook(bookId: string, data: {
       return { error: "User not found" }
     }
 
-    // Verify the book belongs to the user
     const existingBook = await prisma.book.findUnique({
       where: { id: bookId },
       select: { userId: true },
@@ -303,21 +306,25 @@ export async function updateBook(bookId: string, data: {
       return { error: "Not authorized to update this book" }
     }
 
-    // Update the book
+    const { collectionIds, ...bookData } = data
+
     const updatedBook = await prisma.book.update({
       where: { id: bookId },
       data: {
-        ...data,
+        ...bookData,
+        collections: {
+          set: collectionIds?.map((id) => ({ id })),
+        },
         updatedAt: new Date(),
       },
       include: {
         collections: {
           select: {
             id: true,
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     })
 
     revalidatePath("/library")

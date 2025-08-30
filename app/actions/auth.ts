@@ -54,7 +54,8 @@ export async function setupAdminAccount(email: string, password: string) {
       data: {
         email,
         password: hashedPassword,
-        name: "Admin"
+        name: "Admin",
+        role: "ADMIN"
       }
     })
     console.log("User created successfully:", user.id)

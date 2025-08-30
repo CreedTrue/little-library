@@ -37,13 +37,21 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
   password      String?
+  role          Role      @default(USER)
   resetToken    String?
   resetTokenExpires DateTime?
+  inviteToken   String?   @unique
+  inviteTokenExpires DateTime?
   books         Book[]
   collections   Collection[]
   accounts      Account[]
