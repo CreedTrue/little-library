@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { createInvite } from "@/app/actions/invites"
@@ -10,19 +10,52 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 
 export default function InvitePage() {
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [inviteLink, setInviteLink] = useState("")
 
+  // Debug: Log session data
+  useEffect(() => {
+    console.log("Session status:", status)
+    console.log("Session data:", session)
+    if (session?.user) {
+      console.log("User role:", session.user.role)
+    }
+  }, [session, status])
+
   if (status === "loading") {
     return <div>Loading...</div>
   }
 
-  if (status === "unauthenticated" || session?.user?.role !== "ADMIN") {
-    router.push("/unauthorized") // Or your preferred redirect
+  if (status === "unauthenticated") {
+    router.push("/login")
     return null
+  }
+
+  if (session?.user?.role !== "ADMIN") {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="max-w-md mx-auto text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="mb-4">
+            You need admin privileges to access this page.
+          </p>
+          <p className="text-sm text-gray-600 mb-4">
+            Current role: {session?.user?.role || "Unknown"}
+          </p>
+          <Button onClick={() => update()}>Refresh Session</Button>
+          <Button 
+            onClick={() => router.push("/dashboard")} 
+            variant="outline" 
+            className="ml-2"
+          >
+            Go to Dashboard
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
