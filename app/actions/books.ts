@@ -123,25 +123,42 @@ export async function getBooks({
   sortOrder = "asc",
   page = 1,
   limit = 12,
+  readStatus = "all",
 }: {
   search?: string;
   sortBy?: "title" | "author" | "createdAt";
   sortOrder?: "asc" | "desc";
   page?: number;
   limit?: number;
+  readStatus?: "all" | "read" | "unread";
 }) {
   try {
     const skip = (page - 1) * limit;
     
-    const where = search
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return { error: "Not authenticated" }
+    }
+    const userId = session.user.id
+
+    let where: any = search
       ? {
           OR: [
-            { title: { contains: search.toLowerCase() } },
-            { author: { contains: search.toLowerCase() } },
+            { title: { contains: search, mode: "insensitive" } },
+            { author: { contains: search, mode: "insensitive" } },
             { isbn: { contains: search } },
           ],
         }
-      : {};
+      : {}
+
+    if (readStatus !== "all") {
+      where.readStatuses = {
+        some: {
+          userId,
+          read: readStatus === "read",
+        },
+      }
+    }
 
     const [books, total] = await Promise.all([
       prisma.book.findMany({
@@ -151,6 +168,9 @@ export async function getBooks({
         take: limit,
         include: {
           ratings: true,
+          readStatuses: {
+            where: { userId },
+          },
           collections: {
             select: {
               id: true,
@@ -160,21 +180,24 @@ export async function getBooks({
         },
       }),
       prisma.book.count({ where }),
-    ]);
+    ])
 
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limit)
 
     return {
       books: books.map((book) => ({
         ...book,
-        averageRating: book.ratings.length > 0
-          ? book.ratings.reduce((acc, rating) => acc + rating.value, 0) / book.ratings.length
-          : null,
+        averageRating:
+          book.ratings.length > 0
+            ? book.ratings.reduce((acc, rating) => acc + rating.value, 0) /
+              book.ratings.length
+            : null,
+        read: book.readStatuses[0]?.read || false,
       })),
       totalPages,
       currentPage: page,
       total,
-    };
+    }
   } catch (error) {
     console.error("Error fetching books:", error);
     return { error: "Failed to fetch books" };
@@ -224,6 +247,50 @@ export async function submitRating(bookId: string, rating: number) {
   } catch (error) {
     console.error("Error submitting rating:", error)
     return { error: "Failed to submit rating" }
+  }
+}
+
+export async function setReadStatus(bookId: string, read: boolean) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return { error: "You must be logged in to update read status" }
+    }
+
+    const existingStatus = await prisma.bookReadStatus.findUnique({
+      where: {
+        userId_bookId: {
+          userId: session.user.id,
+          bookId,
+        },
+      },
+    })
+
+    if (existingStatus) {
+      await prisma.bookReadStatus.update({
+        where: {
+          id: existingStatus.id,
+        },
+        data: {
+          read,
+        },
+      })
+    } else {
+      await prisma.bookReadStatus.create({
+        data: {
+          read,
+          userId: session.user.id,
+          bookId,
+        },
+      })
+    }
+
+    revalidatePath("/library")
+    revalidatePath(`/books/${bookId}`) // Revalidate book details page if it exists
+    return { success: true }
+  } catch (error) {
+    console.error("Error setting read status:", error)
+    return { error: "Failed to set read status" }
   }
 }
 

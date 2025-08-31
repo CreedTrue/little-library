@@ -15,12 +15,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+import { CheckCircle2 } from "lucide-react"
+
 interface Book {
   id: string
   title: string
   author: string
   coverImage: string | null
   averageRating: number | null
+  read: boolean
   isbn?: string | null
   description?: string | null
 }
@@ -85,6 +88,11 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
         {books.map((book) => (
           <Card key={book.id} className="flex flex-col">
             <CardHeader className="relative aspect-[2/3] p-0">
+              {book.read && (
+                <div className="absolute top-2 right-2 z-10 bg-green-500 rounded-full p-1">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </div>
+              )}
               {book.coverImage ? (
                 <Image
                   src={book.coverImage}

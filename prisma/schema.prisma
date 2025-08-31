@@ -57,6 +57,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   ratings       Rating[]
+  readStatuses  BookReadStatus[]
 }
 
 model VerificationToken {
@@ -80,6 +81,7 @@ model Book {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   collections Collection[] @relation("BookToCollection")
   ratings     Rating[]
+  readStatuses BookReadStatus[]
 }
 
 model Collection {
@@ -98,8 +100,21 @@ model Rating {
   value     Int
   userId    String
   bookId    String
-  user      User     @relation(fields: [userId], references: [id])
-  book      Book     @relation(fields: [bookId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, bookId])
+}
+
+model BookReadStatus {
+  id        String   @id @default(cuid())
+  read      Boolean  @default(false)
+  userId    String
+  bookId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
