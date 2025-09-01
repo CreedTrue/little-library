@@ -17,6 +17,10 @@ import { removeBook } from "@/app/actions/books"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { setReadStatus } from "@/app/actions/books"
+
 interface BookDetailsDialogProps {
   book: {
     id: string
@@ -26,6 +30,7 @@ interface BookDetailsDialogProps {
     description?: string | null
     coverImage?: string | null
     averageRating: number | null
+    read: boolean
     collections?: {
       id: string
       name: string
@@ -164,6 +169,28 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
                   </div>
                 )}
                 <RatingForm bookId={currentBook.id} />
+                <div className="flex items-center space-x-2 pt-4">
+                  <Checkbox
+                    id="read-status"
+                    checked={currentBook.read}
+                    onCheckedChange={async (checked) => {
+                      const newReadStatus = !!checked
+                      setCurrentBook({ ...currentBook, read: newReadStatus })
+                      const result = await setReadStatus(currentBook.id, newReadStatus)
+                      if (result.error) {
+                        toast.error(result.error)
+                        // Revert optimistic update
+                        setCurrentBook({ ...currentBook, read: !newReadStatus })
+                      } else {
+                        toast.success(`Book marked as ${newReadStatus ? 'read' : 'unread'}`)
+                        router.refresh()
+                      }
+                    }}
+                  />
+                  <Label htmlFor="read-status" className="text-sm font-medium">
+                    Mark as read
+                  </Label>
+                </div>
                 <div className="pt-4">
                   <Button
                     variant="destructive"

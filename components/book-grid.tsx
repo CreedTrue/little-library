@@ -15,12 +15,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+import { CheckCircle2 } from "lucide-react"
+
 interface Book {
   id: string
   title: string
   author: string
   coverImage: string | null
   averageRating: number | null
+  read: boolean
   isbn?: string | null
   description?: string | null
 }
@@ -81,10 +84,15 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {books.map((book) => (
           <Card key={book.id} className="flex flex-col">
-            <CardHeader className="relative aspect-[2/3] p-0">
+            <CardHeader className="relative aspect-[3/4] p-0">
+              {book.read && (
+                <div className="absolute top-1 right-1 z-10 bg-green-500 rounded-full p-0.5">
+                  <CheckCircle2 className="w-3 h-3 text-white" />
+                </div>
+              )}
               {book.coverImage ? (
                 <Image
                   src={book.coverImage}
@@ -98,30 +106,31 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="flex-grow p-4">
-              <h3 className="font-semibold line-clamp-2">{book.title}</h3>
-              <p className="text-sm text-muted-foreground mt-1">{book.author}</p>
+            <CardContent className="flex-grow p-2">
+              <h3 className="font-semibold text-sm line-clamp-2">{book.title}</h3>
+              <p className="text-xs text-muted-foreground mt-1">{book.author}</p>
               {book.averageRating !== null && (
-                <div className="flex items-center mt-2">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm ml-1">{book.averageRating.toFixed(1)}</span>
+                <div className="flex items-center mt-1">
+                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                  <span className="text-xs ml-1">{book.averageRating.toFixed(1)}</span>
                 </div>
               )}
             </CardContent>
-            <CardFooter className="p-4 pt-0">
-              <div className="flex gap-2 w-full">
+            <CardFooter className="p-2 pt-0">
+              <div className="flex gap-1 w-full">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1"
+                  className="flex-1 text-xs h-7"
                   onClick={() => handleEditBook(book)}
                 >
-                  <Edit className="w-4 h-4 mr-1" />
+                  <Edit className="w-3 h-3 mr-1" />
                   Edit
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex-1"
+                  size="sm"
+                  className="flex-1 text-xs h-7"
                   onClick={() => handleViewDetails(book)}
                 >
                   View

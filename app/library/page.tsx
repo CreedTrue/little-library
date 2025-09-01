@@ -8,6 +8,7 @@ import { redirect } from "next/navigation"
 
 type SortBy = "title" | "author" | "createdAt"
 type SortOrder = "asc" | "desc"
+type ReadStatus = "all" | "read" | "unread"
 
 type Props = {
   params: Promise<{ [key: string]: string | string[] | undefined }>
@@ -25,12 +26,14 @@ export default async function LibraryPage({ searchParams }: Props) {
   const sortBy = ((resolvedSearchParams.sortBy as string) || "title") as SortBy
   const sortOrder = ((resolvedSearchParams.sortOrder as string) || "asc") as SortOrder
   const page = parseInt((resolvedSearchParams.page as string) || "1")
+  const readStatus = ((resolvedSearchParams.readStatus as string) || "all") as ReadStatus
 
   const result = await getBooks({
     search,
     sortBy,
     sortOrder,
-    page
+    page,
+    readStatus,
   })
 
   if (result.error) {

@@ -77,6 +77,22 @@ export function LibraryFilters() {
           <SelectItem value="desc">Descending</SelectItem>
         </SelectContent>
       </Select>
+      <Select
+        defaultValue={searchParams.get("readStatus") || "all"}
+        onValueChange={(value) => {
+          const queryString = createQueryString({ readStatus: value === "all" ? "" : value })
+          router.push(`/library?${queryString}`)
+        }}
+      >
+        <SelectTrigger className="sm:max-w-[180px]">
+          <SelectValue placeholder="Read Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All</SelectItem>
+          <SelectItem value="read">Read</SelectItem>
+          <SelectItem value="unread">Unread</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   )
 } 
