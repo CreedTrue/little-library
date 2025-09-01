@@ -47,7 +47,9 @@ function QuickActions() {
         <div className="rounded-lg border bg-card p-4 text-left hover:bg-accent w-full">
           <h3 className="font-semibold">Scan with Phone</h3>
           <p className="text-sm text-gray-500">Use your phone to scan book barcodes</p>
-          <ScannerQR />
+          <div className="mt-3 flex justify-center">
+            <ScannerQR />
+          </div>
         </div>
         <Link href="/library">
           <button className="rounded-lg border bg-card p-4 text-left hover:bg-accent w-full">

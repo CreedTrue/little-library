@@ -116,8 +116,12 @@ export function ScannerQR() {
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
-      <div className="rounded-lg border bg-card p-4">
-        <QRCodeSVG value={connectionUrl} size={256} />
+      <div className="rounded-lg border bg-card p-4 flex justify-center">
+        <QRCodeSVG 
+          value={connectionUrl} 
+          size={200} 
+          className="max-w-full h-auto"
+        />
       </div>
       <div className="text-center">
         <p className="text-sm text-gray-500">
