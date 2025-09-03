@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    container_name: little-library
+    ports:
+      - "3000:3000"
+    volumes:
+      # This bind mount persists the database file in a `data` directory on the host machine.
+      - ./data:/prisma
+    environment:
+      # This points Prisma to the database file inside the container.
+      - DATABASE_URL=file:/prisma/dev.db
+    env_file:
+      - .env
+    restart: unless-stopped
+    # The container already runs as the nextjs user (1001:1001) from the Dockerfile
