@@ -18,7 +18,11 @@ export async function getCollections() {
         },
       },
       include: {
-        books: true,
+        books: {
+          include: {
+            ratings: true,
+          },
+        },
       },
     })
     return { collections }

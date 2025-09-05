@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { ScannerQR } from "@/components/scanner-qr"
+import { DashboardCollections } from "@/components/dashboard-collections"
 
 async function getStats() {
   const totalBooks = await prisma.book.count()
@@ -98,6 +99,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <QuickActions />
+        <DashboardCollections />
       </div>
     </div>
   )
