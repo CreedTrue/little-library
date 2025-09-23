@@ -1,6 +1,8 @@
 # Personal Library Manager
 
-This open-source project provides a sleek and simple web app to manage personal libraries of physical books.
+This open-source project provides a sleek and simple web app for easily hosting and maintaining personal libraries of physical books.
+
+This project was inspired by book lovers who also love to share their passion for books with others. Originally, it was created to manage a 5th-grade teacher's books in her classroom and home, but it has taken on a larger goal to eventually be a simple yet extensible tool for all book lovers.
 
 ## Features
 
@@ -13,55 +15,35 @@ This open-source project provides a sleek and simple web app to manage personal 
 *   **Library Browser**: Browse your library with filtering and search functionality.
 *   **Edit and Rate**: Edit book details, update cover images, and rate your books.
 
-## Upcoming Features
+## Getting Started with Docker
 
-We are continuously working to improve the app. Here are some of the features we plan to add next:
-
-*   **Multiple Collections**: Allow a book to be part of multiple collections.
-*   **Multiple Users**: Introduce support for multiple user accounts.
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## Running with Docker
-
-This is the recommended way to run the application in production.
+This is the recommended way to run the application.
 
 ### Prerequisites
 
 *   [Docker](https://docs.docker.com/get-docker/)
 *   [Docker Compose](https://docs.docker.com/compose/install/)
 
-### 1. Create an Environment File
+### Step 1: Create an Environment File
 
-Create a file named `.env` in the root of the project and add the following environment variables.
+Before you can run the application, you need to create a `.env` file in the same folder as the `docker-compose.yml` file. This file will store your environment variables.
+
+Create a file named `.env` and add the following content:
 
 ```env
 # NextAuth - A secret key for signing tokens.
-# Generate a random secret with: openssl rand -hex 32
+# You can generate a random secret with the command: openssl rand -hex 32
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key-here"
+NEXTAUTH_SECRET="your-super-secret-key-here"
 
 # Email (Resend) - for password reset
+# This is optional and only needed if you want to use the password reset feature.
 RESEND_API_KEY="your-resend-api-key"
 ```
 
-### 2. Build and Run the Application
+### Step 2: Run the Application
 
-Run the following command to build the Docker image and start the application:
+With Docker running, execute the following command in your terminal:
 
 ```bash
 docker-compose up --build -d
@@ -71,7 +53,26 @@ The application will be available at [http://localhost:3000](http://localhost:30
 
 ### Database Persistence
 
-The SQLite database file is stored in the `data/` directory on your local machine. This directory is created automatically. You can back up this directory to save your library data.
+By default, the SQLite database file is stored in a `data` directory that is automatically created in the project's root folder.
+
+If you want to store the database in a different location on your computer, you can edit the `docker-compose.yml` file. Change the following line:
+
+```yml
+volumes:
+  - ./data:/prisma
+```
+
+Replace `./data` with the absolute or relative path to your desired directory. For example, to store it in a folder named `my-library-data` in your home directory, you would use:
+
+```yml
+# Example for Linux or macOS
+volumes:
+  - ~/my-library-data:/prisma
+
+# Example for Windows
+volumes:
+  - C:/Users/YourUser/my-library-data:/prisma
+```
 
 ### Stopping the Application
 
@@ -81,18 +82,6 @@ To stop the application, run:
 docker-compose down
 ```
 
-## Environment Variables (for local development)
+## Contributing
 
-If you are not using Docker, create a `.env` file in the root directory with the following variables:
-
-```env
-# Database
-DATABASE_URL="file:./dev.db"
-
-# NextAuth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key-here"
-
-# Email (Resend) - for password reset
-RESEND_API_KEY="your-resend-api-key"
-```
+We welcome contributions! If you're interested in contributing to the project, please see our [Contributing Guide](CONTRIBUTING.md) for more information on how to get started.
