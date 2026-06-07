@@ -63,60 +63,6 @@ export async function addBook(data: {
   }
 }
 
-export async function lookupBookByIsbn(isbn: string) {
-  try {
-    // First, get the book details from the ISBN endpoint
-    const response = await fetch(`https://openlibrary.org/isbn/${isbn}.json`)
-    if (!response.ok) {
-      return { error: "Book not found" }
-    }
-    const data = await response.json()
-
-    // Get the work ID from the book data
-    const workId = data.works?.[0]?.key
-    let description = ""
-
-    // If we have a work ID, fetch the description
-    if (workId) {
-      const workResponse = await fetch(`https://openlibrary.org${workId}.json`)
-      if (workResponse.ok) {
-        const workData = await workResponse.json()
-        // Get the description from the work data
-        description = workData.description?.value || workData.description || ""
-      }
-    }
-
-    // Get author details
-    let author = "Unknown"
-    if (data.authors?.[0]?.key) {
-      const authorResponse = await fetch(`https://openlibrary.org${data.authors[0].key}.json`)
-      if (authorResponse.ok) {
-        const authorData = await authorResponse.json()
-        author = authorData.name
-      }
-    }
-
-    // Get cover image
-    const coverId = data.covers?.[0]
-    const coverImage = coverId 
-      ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
-      : null
-
-    return {
-      book: {
-        title: data.title,
-        author,
-        isbn,
-        description,
-        coverImage,
-      }
-    }
-  } catch (error) {
-    console.error("Error looking up book:", error)
-    return { error: "Failed to lookup book" }
-  }
-}
-
 export async function getBooks({
   search = "",
   sortBy = "title",

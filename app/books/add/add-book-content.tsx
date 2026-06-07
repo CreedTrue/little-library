@@ -19,6 +19,15 @@ interface BookData {
   description?: string
 }
 
+interface SearchResult {
+  title: string
+  author: string
+  isbn: string
+  coverUrl?: string
+  firstPublishYear?: number
+  key: string
+}
+
 interface Collection {
   id: string
   name: string
@@ -38,9 +47,11 @@ export default function AddBookPageContent() {
   })
   const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isbnLookup, setIsbnLookup] = useState("")
-  const [lookupLoading, setLookupLoading] = useState(false)
-  const [lookupError, setLookupError] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState("")
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [hasSearched, setHasSearched] = useState(false)
   const [tab, setTab] = useState("manual")
   const [isConnected, setIsConnected] = useState(false)
   const [socket, setSocket] = useState<any>(null)
@@ -246,38 +257,89 @@ export default function AddBookPageContent() {
     })
   }
 
-  const handleIsbnLookup = async () => {
-    const cleanedIsbn = isbnLookup.replace(/[\s-]/g, "")
-    setLookupLoading(true)
-    setLookupError("")
+  const handleSearch = async () => {
+    const query = searchQuery.trim()
+    if (!query) return
+    setSearchLoading(true)
+    setSearchError("")
+    setSearchResults([])
+    setHasSearched(true)
     try {
-      const response = await fetch(`https://openlibrary.org/isbn/${cleanedIsbn}.json`)
-      if (!response.ok) throw new Error("Book not found")
-      const bookData = await response.json()
-      let authorName = "Unknown Author"
-      if (bookData.authors?.[0]?.key) {
-        const authorResponse = await fetch(`https://openlibrary.org${bookData.authors[0].key}.json`)
-        if (authorResponse.ok) {
-          const authorData = await authorResponse.json()
-          authorName = authorData.name
-        }
+      const response = await fetch(
+        `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20`
+      )
+      if (!response.ok) throw new Error("Search failed")
+      const data = await response.json()
+      type OpenLibraryDoc = {
+        title?: string; author_name?: string[]; isbn?: string[]; cover_i?: number; first_publish_year?: number; key: string
       }
-      setFormData({
-        title: bookData.title || "Unknown Title",
-        author: authorName,
-        isbn: isbnLookup,
-        description: bookData.description?.value || bookData.description || "",
-        coverUrl: bookData.covers?.[0]
-          ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
-          : "",
-      })
-      setSelectedCollectionIds([])
-      setTab("manual")
-    } catch (err: any) {
-      setLookupError("Book not found or error fetching data.")
+      const results: SearchResult[] = (data.docs || []).map((doc: OpenLibraryDoc) => ({
+        title: doc.title || "Unknown Title",
+        author: doc.author_name?.[0] || "Unknown Author",
+        isbn: doc.isbn?.[0] || "",
+        coverUrl: doc.cover_i
+          ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+          : undefined,
+        firstPublishYear: doc.first_publish_year,
+        key: doc.key,
+      }))
+      setSearchResults(results)
+    } catch {
+      setSearchError("Search failed. Please try again.")
     } finally {
-      setLookupLoading(false)
+      setSearchLoading(false)
     }
+  }
+
+  const handleSelectResult = async (result: SearchResult) => {
+    setFormData({
+      title: result.title,
+      author: result.author,
+      isbn: result.isbn,
+      description: "",
+      coverUrl: result.coverUrl || "",
+    })
+    setSelectedCollectionIds([])
+    if (result.isbn) {
+      toast.loading("Fetching book details...")
+      try {
+        const response = await fetch(`https://openlibrary.org/isbn/${result.isbn}.json`)
+        if (response.ok) {
+          const bookData = await response.json()
+          let description = ""
+          let authorName = result.author
+          const workId = bookData.works?.[0]?.key
+          if (workId) {
+            const workResponse = await fetch(`https://openlibrary.org${workId}.json`)
+            if (workResponse.ok) {
+              const workData = await workResponse.json()
+              description = workData.description?.value || workData.description || ""
+            }
+          }
+          if (bookData.authors?.[0]?.key) {
+            const authorResponse = await fetch(`https://openlibrary.org${bookData.authors[0].key}.json`)
+            if (authorResponse.ok) {
+              const authorData = await authorResponse.json()
+              authorName = authorData.name
+            }
+          }
+          setFormData({
+            title: result.title,
+            author: authorName,
+            isbn: result.isbn,
+            description,
+            coverUrl: bookData.covers?.[0]
+              ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
+              : result.coverUrl || "",
+          })
+        }
+        toast.dismiss()
+        toast.success("Book data loaded!")
+      } catch {
+        toast.dismiss()
+      }
+    }
+    setTab("manual")
   }
 
   return (
@@ -299,7 +361,7 @@ export default function AddBookPageContent() {
       <Tabs value={tab} onValueChange={setTab} className="max-w-2xl">
         <TabsList>
           <TabsTrigger value="manual">Manual Entry</TabsTrigger>
-          <TabsTrigger value="isbn">ISBN Lookup</TabsTrigger>
+          <TabsTrigger value="search">Search Books</TabsTrigger>
         </TabsList>
         <TabsContent value="manual">
           <div className="flex flex-col md:flex-row gap-8">
@@ -401,35 +463,77 @@ export default function AddBookPageContent() {
             )}
           </div>
         </TabsContent>
-        <TabsContent value="isbn">
+        <TabsContent value="search">
           <div className="space-y-4">
             <div>
-              <label htmlFor="isbnLookup" className="block text-sm font-medium">
-                ISBN
+              <label htmlFor="searchQuery" className="block text-sm font-medium">
+                Search Books
               </label>
               <div className="mt-1 flex gap-2">
                 <input
                   type="text"
-                  id="isbnLookup"
-                  value={isbnLookup}
-                  onChange={(e) => setIsbnLookup(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleIsbnLookup() }}
+                  id="searchQuery"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSearch() }}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2"
-                  placeholder="Enter ISBN..."
+                  placeholder="Search by title, author, or ISBN..."
                 />
                 <button
                   type="button"
-                  onClick={handleIsbnLookup}
-                  disabled={lookupLoading}
+                  onClick={handleSearch}
+                  disabled={searchLoading}
                   className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {lookupLoading ? "Looking up..." : "Lookup"}
+                  {searchLoading ? "Searching..." : "Search"}
                 </button>
               </div>
-              {lookupError && (
-                <p className="mt-2 text-sm text-red-600">{lookupError}</p>
+              {searchError && (
+                <p className="mt-2 text-sm text-red-600">{searchError}</p>
               )}
             </div>
+            {hasSearched && searchResults.length === 0 && !searchLoading && (
+              <p className="text-sm text-gray-500">No results found</p>
+            )}
+            {searchResults.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">
+                  Found {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+                </p>
+                {searchResults.map((result, index) => (
+                  <div
+                    key={result.key || index}
+                    className="flex items-center gap-4 rounded-lg border p-3"
+                  >
+                    {result.coverUrl ? (
+                      <img
+                        src={result.coverUrl}
+                        alt={`Cover of ${result.title}`}
+                        className="h-16 w-12 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="h-16 w-12 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
+                        No cover
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{result.title}</p>
+                      <p className="text-sm text-gray-500">{result.author}</p>
+                      {result.firstPublishYear && (
+                        <p className="text-xs text-gray-400">First published: {result.firstPublishYear}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectResult(result)}
+                      className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary/90"
+                    >
+                      Select
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
