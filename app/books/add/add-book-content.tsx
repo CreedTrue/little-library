@@ -307,7 +307,6 @@ export default function AddBookPageContent() {
   }
 
   const handleSelectResult = async (result: SearchResult) => {
-    console.log("[EditionPicker] handleSelectResult - title:", result.title, "isbn:", result.isbn, "key:", result.key, "workKey:", result.workKey)
     setFormData({
       title: result.title,
       author: result.author,
@@ -326,10 +325,8 @@ export default function AddBookPageContent() {
       // Source 1: ISBN API
       if (result.isbn) {
         const response = await fetch(`https://openlibrary.org/isbn/${result.isbn}.json`)
-        console.log("[EditionPicker] ISBN fetch status:", response.status)
         if (response.ok) {
           const bookData = await response.json()
-          console.log("[EditionPicker] ISBN response works:", bookData.works)
           workKey = bookData.works?.[0]?.key || workKey
 
           if (bookData.authors?.[0]?.key) {
@@ -352,27 +349,19 @@ export default function AddBookPageContent() {
         }
       }
 
-      // Source 2: result.key itself may already be a work key
       if (!workKey && result.key) {
         if (result.key.startsWith("/works/")) {
-          console.log("[EditionPicker] result.key is already a work key:", result.key)
           workKey = result.key
         } else {
-          // It's an edition key, fetch it to find the linked work
-          console.log("[EditionPicker] trying edition key API for work key:", result.key)
           const editionResponse = await fetch(`https://openlibrary.org${result.key}.json`)
-          console.log("[EditionPicker] edition API status:", editionResponse.status)
           if (editionResponse.ok) {
             const editionData = await editionResponse.json()
-            console.log("[EditionPicker] edition response works:", editionData.works)
             workKey = editionData.works?.[0]?.key
           }
         }
       }
 
-      // Fetch work description if we have a work key
       if (workKey) {
-        console.log("[EditionPicker] fetching work description from:", `https://openlibrary.org${workKey}.json`)
         const workResponse = await fetch(`https://openlibrary.org${workKey}.json`)
         if (workResponse.ok) {
           const workData = await workResponse.json()
@@ -381,9 +370,7 @@ export default function AddBookPageContent() {
         setFormData(prev => ({ ...prev, description }))
       }
 
-      console.log("[EditionPicker] final workKey:", workKey, "will open picker?", !!workKey)
       if (workKey) {
-        console.log("[EditionPicker] opening picker with workId:", workKey)
         setPickerWorkId(workKey)
         setPickerInitialIsbn(result.isbn)
         setPickerAuthorName(authorName)
@@ -395,15 +382,13 @@ export default function AddBookPageContent() {
 
       toast.dismiss()
       toast.success("Book data loaded!")
-    } catch (err) {
-      console.log("[EditionPicker] error:", err)
+    } catch {
       toast.dismiss()
     }
     setTab("manual")
   }
 
   const handleEditionPick = (edition: SelectedEdition) => {
-    console.log("[EditionPicker] handleEditionPick called with:", edition)
     setFormData({
       title: edition.title,
       author: edition.author,

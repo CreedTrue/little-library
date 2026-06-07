@@ -60,11 +60,9 @@ export function EditionPickerDialog({
   const [brokenCovers, setBrokenCovers] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    console.log("[EditionPickerDialog] useEffect fired: isOpen:", isOpen, "workId:", workId, "initialIsbn:", initialIsbn)
     if (!isOpen) return
 
     const fetchEditions = async () => {
-      console.log("[EditionPickerDialog] Starting fetchEditions for workId:", workId)
       setLoading(true)
       setError("")
       setEditions([])
@@ -73,17 +71,12 @@ export function EditionPickerDialog({
 
       let docs: EditionDoc[] = []
       try {
-        const url = `https://openlibrary.org${workId}/editions.json?limit=50`
-        console.log("[EditionPickerDialog] Fetching:", url)
-        const res = await fetch(url)
-        console.log("[EditionPickerDialog] Editions response status:", res.status)
-        if (!res.ok) throw new Error(`Failed with status ${res.status}`)
+        const res = await fetch(
+          `https://openlibrary.org${workId}/editions.json?limit=50`
+        )
+        if (!res.ok) throw new Error("Failed")
         const data = await res.json()
-        console.log("[EditionPickerDialog] Editions response keys:", Object.keys(data))
-        console.log("[EditionPickerDialog] data.editions:", data.editions)
         docs = data.editions?.docs || data.docs || data.entries || []
-        console.log("[EditionPickerDialog] Parsed edition docs count:", docs.length)
-        console.log("[EditionPickerDialog] First doc keys:", docs[0] ? Object.keys(docs[0]) : "N/A")
         setEditions(docs)
 
         if (initialIsbn && docs.length > 0) {
@@ -92,17 +85,12 @@ export function EditionPickerDialog({
               e.isbn_13?.includes(initialIsbn) ||
               e.isbn_10?.includes(initialIsbn)
           )
-          if (match) {
-            console.log("[EditionPickerDialog] Found matching edition for ISBN:", initialIsbn, match.key)
-            setSelectedKey(match.key)
-          }
+          if (match) setSelectedKey(match.key)
         }
-      } catch (err) {
-        console.log("[EditionPickerDialog] Error fetching editions:", err)
+      } catch {
         setError("Could not load editions.")
       } finally {
         setLoading(false)
-        console.log("[EditionPickerDialog] fetchEditions complete. Edition count:", docs.length)
       }
     }
 
