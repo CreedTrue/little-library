@@ -247,10 +247,11 @@ export default function AddBookPageContent() {
   }
 
   const handleIsbnLookup = async () => {
+    const cleanedIsbn = isbnLookup.replace(/[\s-]/g, "")
     setLookupLoading(true)
     setLookupError("")
     try {
-      const response = await fetch(`https://openlibrary.org/isbn/${isbnLookup}.json`)
+      const response = await fetch(`https://openlibrary.org/isbn/${cleanedIsbn}.json`)
       if (!response.ok) throw new Error("Book not found")
       const bookData = await response.json()
       let authorName = "Unknown Author"
