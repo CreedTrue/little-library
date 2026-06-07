@@ -6,7 +6,8 @@
     "dev": "node server.js",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker-dev": "docker-compose up --build -d"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
