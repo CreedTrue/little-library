@@ -10,6 +10,7 @@ import { io } from "socket.io-client"
 import { CreateCollectionDialog } from "@/components/create-collection-dialog"
 import { Label } from "@/components/ui/label"
 import { CollectionSelector } from "@/components/collection-selector"
+import { EditionPickerDialog, type SelectedEdition } from "@/components/edition-picker-dialog"
 
 interface BookData {
   title: string
@@ -25,6 +26,10 @@ interface SearchResult {
   isbn: string
   coverUrl?: string
   firstPublishYear?: number
+  publishYear?: number
+  publisher?: string
+  editionCount?: number
+  workKey?: string
   key: string
 }
 
@@ -52,6 +57,11 @@ export default function AddBookPageContent() {
   const [searchError, setSearchError] = useState("")
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [hasSearched, setHasSearched] = useState(false)
+  const [editionPickerOpen, setEditionPickerOpen] = useState(false)
+  const [pickerWorkId, setPickerWorkId] = useState("")
+  const [pickerInitialIsbn, setPickerInitialIsbn] = useState("")
+  const [pickerAuthorName, setPickerAuthorName] = useState("")
+  const [pickerDescription, setPickerDescription] = useState("")
   const [tab, setTab] = useState("manual")
   const [isConnected, setIsConnected] = useState(false)
   const [socket, setSocket] = useState<any>(null)
@@ -260,6 +270,7 @@ export default function AddBookPageContent() {
   const handleSearch = async () => {
     const query = searchQuery.trim()
     if (!query) return
+    setEditionPickerOpen(false)
     setSearchLoading(true)
     setSearchError("")
     setSearchResults([])
@@ -271,7 +282,7 @@ export default function AddBookPageContent() {
       if (!response.ok) throw new Error("Search failed")
       const data = await response.json()
       type OpenLibraryDoc = {
-        title?: string; author_name?: string[]; isbn?: string[]; cover_i?: number; first_publish_year?: number; key: string
+        title?: string; author_name?: string[]; isbn?: string[]; cover_i?: number; first_publish_year?: number; publish_year?: number[]; publisher?: string[]; edition_count?: number; seed?: string[]; key: string
       }
       const results: SearchResult[] = (data.docs || []).map((doc: OpenLibraryDoc) => ({
         title: doc.title || "Unknown Title",
@@ -281,6 +292,10 @@ export default function AddBookPageContent() {
           ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
           : undefined,
         firstPublishYear: doc.first_publish_year,
+        publishYear: doc.publish_year?.[0],
+        publisher: doc.publisher?.[0],
+        editionCount: doc.edition_count,
+        workKey: doc.seed?.find((s: string) => s.startsWith("/works/")),
         key: doc.key,
       }))
       setSearchResults(results)
@@ -292,6 +307,7 @@ export default function AddBookPageContent() {
   }
 
   const handleSelectResult = async (result: SearchResult) => {
+    console.log("[EditionPicker] handleSelectResult - title:", result.title, "isbn:", result.isbn, "key:", result.key, "workKey:", result.workKey)
     setFormData({
       title: result.title,
       author: result.author,
@@ -300,22 +316,22 @@ export default function AddBookPageContent() {
       coverUrl: result.coverUrl || "",
     })
     setSelectedCollectionIds([])
-    if (result.isbn) {
-      toast.loading("Fetching book details...")
-      try {
+
+    toast.loading("Fetching book details...")
+    try {
+      let description = ""
+      let authorName = result.author
+      let workKey: string | undefined = result.workKey
+
+      // Source 1: ISBN API
+      if (result.isbn) {
         const response = await fetch(`https://openlibrary.org/isbn/${result.isbn}.json`)
+        console.log("[EditionPicker] ISBN fetch status:", response.status)
         if (response.ok) {
           const bookData = await response.json()
-          let description = ""
-          let authorName = result.author
-          const workId = bookData.works?.[0]?.key
-          if (workId) {
-            const workResponse = await fetch(`https://openlibrary.org${workId}.json`)
-            if (workResponse.ok) {
-              const workData = await workResponse.json()
-              description = workData.description?.value || workData.description || ""
-            }
-          }
+          console.log("[EditionPicker] ISBN response works:", bookData.works)
+          workKey = bookData.works?.[0]?.key || workKey
+
           if (bookData.authors?.[0]?.key) {
             const authorResponse = await fetch(`https://openlibrary.org${bookData.authors[0].key}.json`)
             if (authorResponse.ok) {
@@ -323,6 +339,7 @@ export default function AddBookPageContent() {
               authorName = authorData.name
             }
           }
+
           setFormData({
             title: result.title,
             author: authorName,
@@ -333,12 +350,69 @@ export default function AddBookPageContent() {
               : result.coverUrl || "",
           })
         }
-        toast.dismiss()
-        toast.success("Book data loaded!")
-      } catch {
-        toast.dismiss()
       }
+
+      // Source 2: result.key itself may already be a work key
+      if (!workKey && result.key) {
+        if (result.key.startsWith("/works/")) {
+          console.log("[EditionPicker] result.key is already a work key:", result.key)
+          workKey = result.key
+        } else {
+          // It's an edition key, fetch it to find the linked work
+          console.log("[EditionPicker] trying edition key API for work key:", result.key)
+          const editionResponse = await fetch(`https://openlibrary.org${result.key}.json`)
+          console.log("[EditionPicker] edition API status:", editionResponse.status)
+          if (editionResponse.ok) {
+            const editionData = await editionResponse.json()
+            console.log("[EditionPicker] edition response works:", editionData.works)
+            workKey = editionData.works?.[0]?.key
+          }
+        }
+      }
+
+      // Fetch work description if we have a work key
+      if (workKey) {
+        console.log("[EditionPicker] fetching work description from:", `https://openlibrary.org${workKey}.json`)
+        const workResponse = await fetch(`https://openlibrary.org${workKey}.json`)
+        if (workResponse.ok) {
+          const workData = await workResponse.json()
+          description = workData.description?.value || workData.description || ""
+        }
+        setFormData(prev => ({ ...prev, description }))
+      }
+
+      console.log("[EditionPicker] final workKey:", workKey, "will open picker?", !!workKey)
+      if (workKey) {
+        console.log("[EditionPicker] opening picker with workId:", workKey)
+        setPickerWorkId(workKey)
+        setPickerInitialIsbn(result.isbn)
+        setPickerAuthorName(authorName)
+        setPickerDescription(description)
+        setEditionPickerOpen(true)
+        toast.dismiss()
+        return
+      }
+
+      toast.dismiss()
+      toast.success("Book data loaded!")
+    } catch (err) {
+      console.log("[EditionPicker] error:", err)
+      toast.dismiss()
     }
+    setTab("manual")
+  }
+
+  const handleEditionPick = (edition: SelectedEdition) => {
+    console.log("[EditionPicker] handleEditionPick called with:", edition)
+    setFormData({
+      title: edition.title,
+      author: edition.author,
+      isbn: edition.isbn,
+      description: edition.description || "",
+      coverUrl: edition.coverUrl,
+    })
+    setSelectedCollectionIds([])
+    toast.success("Book data loaded!")
     setTab("manual")
   }
 
@@ -519,8 +593,17 @@ export default function AddBookPageContent() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{result.title}</p>
                       <p className="text-sm text-gray-500">{result.author}</p>
-                      {result.firstPublishYear && (
-                        <p className="text-xs text-gray-400">First published: {result.firstPublishYear}</p>
+                      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-400 mt-0.5">
+                        {result.publisher && <span>{result.publisher}</span>}
+                        {result.publishYear && <span>{result.publishYear}</span>}
+                        {!result.publishYear && result.firstPublishYear && (
+                          <span>First published: {result.firstPublishYear}</span>
+                        )}
+                      </div>
+                      {result.editionCount && result.editionCount > 1 && (
+                        <span className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                          {result.editionCount} editions
+                        </span>
                       )}
                     </div>
                     <button
@@ -537,6 +620,16 @@ export default function AddBookPageContent() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <EditionPickerDialog
+        isOpen={editionPickerOpen}
+        onClose={() => setEditionPickerOpen(false)}
+        workId={pickerWorkId}
+        initialIsbn={pickerInitialIsbn}
+        authorName={pickerAuthorName}
+        description={pickerDescription}
+        onSelect={handleEditionPick}
+      />
     </div>
   )
 }

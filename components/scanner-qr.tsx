@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { QRCodeSVG } from "qrcode.react"
 import { io } from "socket.io-client"
 import { useRouter } from "next/navigation"
+import { EditionPickerDialog, type SelectedEdition } from "@/components/edition-picker-dialog"
 
 interface BookData {
   title: string
@@ -18,6 +19,8 @@ export function ScannerQR() {
   const [socket, setSocket] = useState<any>(null)
   const [sessionId, setSessionId] = useState<string>("")
   const [scannedBook, setScannedBook] = useState<BookData | null>(null)
+  const [scannedWorkId, setScannedWorkId] = useState<string | null>(null)
+  const [editionPickerOpen, setEditionPickerOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -79,6 +82,8 @@ export function ScannerQR() {
             authorName = authorData.name
           }
         }
+        const workKey = bookData.works?.[0]?.key || null
+
         const formattedBook: BookData = {
           title: bookData.title || "Unknown Title",
           author: authorName,
@@ -89,6 +94,7 @@ export function ScannerQR() {
           description: description
         }
         setScannedBook(formattedBook)
+        setScannedWorkId(workKey)
       } catch (error) {
         console.error("Error fetching book data:", error)
         // Optionally show an error toast here
@@ -154,8 +160,35 @@ export function ScannerQR() {
           >
             Add to Library
           </button>
+          {scannedWorkId && (
+            <button
+              onClick={() => setEditionPickerOpen(true)}
+              className="mt-2 w-full rounded-md border border-primary px-4 py-2 text-sm text-primary hover:bg-primary/5"
+            >
+              Choose Edition
+            </button>
+          )}
         </div>
       )}
+
+      <EditionPickerDialog
+        isOpen={editionPickerOpen}
+        onClose={() => setEditionPickerOpen(false)}
+        workId={scannedWorkId || ""}
+        initialIsbn={scannedBook?.isbn}
+        authorName={scannedBook?.author || "Unknown"}
+        description={scannedBook?.description}
+        onSelect={(edition: SelectedEdition) => {
+          setScannedBook({
+            title: edition.title,
+            author: edition.author,
+            isbn: edition.isbn,
+            coverUrl: edition.coverUrl || scannedBook?.coverUrl,
+            description: edition.description || scannedBook?.description,
+          })
+          setEditionPickerOpen(false)
+        }}
+      />
     </div>
   )
 } 
