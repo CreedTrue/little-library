@@ -3,7 +3,7 @@ services:
     build: .
     container_name: little-library
     ports:
-      - "3000:3000"
+      - "3002:3002"
     volumes:
       # This bind mount persists the database file in a `data` directory on the host machine.
       - ./data:/prisma

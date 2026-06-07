@@ -7,7 +7,14 @@
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint",
-    "docker-dev": "docker-compose up --build -d"
+    "docker-dev": "docker-compose up --build -d",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:validate": "prisma validate",
+    "db:reset": "prisma migrate reset"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

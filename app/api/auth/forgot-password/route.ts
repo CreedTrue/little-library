@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Send password reset email using Resend
-    const resetUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
+    const resetUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3002'}/reset-password?token=${resetToken}`
     const serverEmail = process.env.SERVER_EMAIL as string
     
     try {
