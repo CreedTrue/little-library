@@ -412,6 +412,7 @@ export default function AddBookPageContent() {
                   id="isbnLookup"
                   value={isbnLookup}
                   onChange={(e) => setIsbnLookup(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleIsbnLookup() }}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2"
                   placeholder="Enter ISBN..."
                 />
