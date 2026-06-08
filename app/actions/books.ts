@@ -92,8 +92,8 @@ export async function getBooks({
     // Handle search filtering
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        { author: { contains: search, mode: "insensitive" } },
+        { title: { contains: search } },
+        { author: { contains: search } },
         { isbn: { contains: search } },
       ]
     }
@@ -134,8 +134,8 @@ export async function getBooks({
     if (search && readStatus !== "all") {
       const searchCondition = {
         OR: [
-          { title: { contains: search, mode: "insensitive" } },
-          { author: { contains: search, mode: "insensitive" } },
+          { title: { contains: search } },
+          { author: { contains: search } },
           { isbn: { contains: search } },
         ],
       }
