@@ -11,6 +11,7 @@ import { CreateCollectionDialog } from "@/components/create-collection-dialog"
 import { Label } from "@/components/ui/label"
 import { CollectionSelector } from "@/components/collection-selector"
 import { EditionPickerDialog, type SelectedEdition } from "@/components/edition-picker-dialog"
+import { QRCodeSVG } from "qrcode.react"
 
 interface BookData {
   title: string
@@ -68,6 +69,7 @@ export default function AddBookPageContent() {
   const [collections, setCollections] = useState<Collection[]>([])
   const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false)
   const [scannerConnected, setScannerConnected] = useState(false)
+  const [sessionId, setSessionId] = useState("")
 
   // Debug logging for state changes
   useEffect(() => {
@@ -118,7 +120,9 @@ export default function AddBookPageContent() {
 
   useEffect(() => {
     // Get session ID from URL or generate a new one
-    const sessionId = searchParams.get("session") || Math.random().toString(36).substring(7)
+    const newSessionId = searchParams.get("session") || Math.random().toString(36).substring(7)
+    setSessionId(newSessionId)
+    const sessionId = newSessionId
     
     // Initialize socket connection
     const socketInstance = io(process.env.NEXT_PUBLIC_YOUR_DOMAIN || "http://localhost:3000", {
@@ -417,40 +421,49 @@ export default function AddBookPageContent() {
           Connecting to scanner service...
         </div>
       )}
-      <Tabs value={tab} onValueChange={setTab} className="max-w-2xl">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="search">Search Books</TabsTrigger>
           <TabsTrigger value="manual">Manual Entry</TabsTrigger>
         </TabsList>
         <TabsContent value="search">
           <div className="space-y-4">
-            <div>
-              <label htmlFor="searchQuery" className="block text-sm font-medium">
-                Search Books
-              </label>
-              <div className="mt-1 flex gap-2">
-                <input
-                  type="text"
-                  id="searchQuery"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSearch() }}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2"
-                  placeholder="Search by title, author, or ISBN..."
-                />
-                <button
-                  type="button"
-                  onClick={handleSearch}
-                  disabled={searchLoading}
-                  className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {searchLoading ? "Searching..." : "Search"}
-                </button>
-              </div>
-              {searchError && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border bg-card p-4">
+                  <label htmlFor="searchQuery" className="block text-sm font-medium mb-2">
+                    Search Books
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      id="searchQuery"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSearch() }}
+                      className="block w-full rounded-md border border-gray-300 px-3 py-2"
+                      placeholder="Search by title, author, or ISBN..."
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSearch}
+                      disabled={searchLoading}
+                      className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {searchLoading ? "Searching..." : "Search"}
+                    </button>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-card p-4 flex flex-col items-center justify-center">
+                  <p className="text-xs text-gray-500 mb-2">Scan to connect Phone</p>
+                  <QRCodeSVG
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/scanner?session=${sessionId}`}
+                    size={120}
+                  />
+                </div>
+            </div>
+            {searchError && (
                 <p className="mt-2 text-sm text-red-600">{searchError}</p>
               )}
-            </div>
             {hasSearched && searchResults.length === 0 && !searchLoading && (
               <p className="text-sm text-gray-500">No results found</p>
             )}
