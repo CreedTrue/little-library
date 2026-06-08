@@ -62,7 +62,7 @@ export default function AddBookPageContent() {
   const [pickerInitialIsbn, setPickerInitialIsbn] = useState("")
   const [pickerAuthorName, setPickerAuthorName] = useState("")
   const [pickerDescription, setPickerDescription] = useState("")
-  const [tab, setTab] = useState("manual")
+  const [tab, setTab] = useState("search")
   const [isConnected, setIsConnected] = useState(false)
   const [socket, setSocket] = useState<any>(null)
   const [collections, setCollections] = useState<Collection[]>([])
@@ -419,9 +419,91 @@ export default function AddBookPageContent() {
       )}
       <Tabs value={tab} onValueChange={setTab} className="max-w-2xl">
         <TabsList>
-          <TabsTrigger value="manual">Manual Entry</TabsTrigger>
           <TabsTrigger value="search">Search Books</TabsTrigger>
+          <TabsTrigger value="manual">Manual Entry</TabsTrigger>
         </TabsList>
+        <TabsContent value="search">
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="searchQuery" className="block text-sm font-medium">
+                Search Books
+              </label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  id="searchQuery"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSearch() }}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2"
+                  placeholder="Search by title, author, or ISBN..."
+                />
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  disabled={searchLoading}
+                  className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {searchLoading ? "Searching..." : "Search"}
+                </button>
+              </div>
+              {searchError && (
+                <p className="mt-2 text-sm text-red-600">{searchError}</p>
+              )}
+            </div>
+            {hasSearched && searchResults.length === 0 && !searchLoading && (
+              <p className="text-sm text-gray-500">No results found</p>
+            )}
+            {searchResults.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">
+                  Found {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+                </p>
+                {searchResults.map((result, index) => (
+                  <div
+                    key={result.key || index}
+                    className="flex items-center gap-4 rounded-lg border p-3"
+                  >
+                    {result.coverUrl ? (
+                      <img
+                        src={result.coverUrl}
+                        alt={`Cover of ${result.title}`}
+                        className="h-16 w-12 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="h-16 w-12 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
+                        No cover
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{result.title}</p>
+                      <p className="text-sm text-gray-500">{result.author}</p>
+                      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-400 mt-0.5">
+                        {result.publisher && <span>{result.publisher}</span>}
+                        {result.publishYear && <span>{result.publishYear}</span>}
+                        {!result.publishYear && result.firstPublishYear && (
+                          <span>First published: {result.firstPublishYear}</span>
+                        )}
+                      </div>
+                      {result.editionCount && result.editionCount > 1 && (
+                        <span className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                          {result.editionCount} editions
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectResult(result)}
+                      className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary/90"
+                    >
+                      Select
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
         <TabsContent value="manual">
           <div className="flex flex-col md:flex-row gap-8">
             <form onSubmit={handleSubmit} className="flex-1 space-y-6" noValidate>
@@ -518,88 +600,6 @@ export default function AddBookPageContent() {
                   alt="Book cover"
                   className="h-64 w-auto object-contain border rounded shadow"
                 />
-              </div>
-            )}
-          </div>
-        </TabsContent>
-        <TabsContent value="search">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="searchQuery" className="block text-sm font-medium">
-                Search Books
-              </label>
-              <div className="mt-1 flex gap-2">
-                <input
-                  type="text"
-                  id="searchQuery"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSearch() }}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2"
-                  placeholder="Search by title, author, or ISBN..."
-                />
-                <button
-                  type="button"
-                  onClick={handleSearch}
-                  disabled={searchLoading}
-                  className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {searchLoading ? "Searching..." : "Search"}
-                </button>
-              </div>
-              {searchError && (
-                <p className="mt-2 text-sm text-red-600">{searchError}</p>
-              )}
-            </div>
-            {hasSearched && searchResults.length === 0 && !searchLoading && (
-              <p className="text-sm text-gray-500">No results found</p>
-            )}
-            {searchResults.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">
-                  Found {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
-                </p>
-                {searchResults.map((result, index) => (
-                  <div
-                    key={result.key || index}
-                    className="flex items-center gap-4 rounded-lg border p-3"
-                  >
-                    {result.coverUrl ? (
-                      <img
-                        src={result.coverUrl}
-                        alt={`Cover of ${result.title}`}
-                        className="h-16 w-12 object-cover rounded"
-                      />
-                    ) : (
-                      <div className="h-16 w-12 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                        No cover
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{result.title}</p>
-                      <p className="text-sm text-gray-500">{result.author}</p>
-                      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-400 mt-0.5">
-                        {result.publisher && <span>{result.publisher}</span>}
-                        {result.publishYear && <span>{result.publishYear}</span>}
-                        {!result.publishYear && result.firstPublishYear && (
-                          <span>First published: {result.firstPublishYear}</span>
-                        )}
-                      </div>
-                      {result.editionCount && result.editionCount > 1 && (
-                        <span className="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
-                          {result.editionCount} editions
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectResult(result)}
-                      className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary/90"
-                    >
-                      Select
-                    </button>
-                  </div>
-                ))}
               </div>
             )}
           </div>
