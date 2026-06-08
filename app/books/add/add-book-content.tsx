@@ -611,7 +611,7 @@ export default function AddBookPageContent() {
                 <img
                   src={formData.coverUrl}
                   alt="Book cover"
-                  className="h-64 w-auto object-contain border rounded shadow"
+                  className="h-96 w-auto object-contain border rounded shadow"
                 />
               </div>
             )}
