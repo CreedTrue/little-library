@@ -15,6 +15,7 @@ interface BookData {
 }
 
 export function ScannerQR() {
+  const [mounted, setMounted] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [socket, setSocket] = useState<any>(null)
   const [sessionId, setSessionId] = useState<string>("")
@@ -24,6 +25,8 @@ export function ScannerQR() {
   const router = useRouter()
 
   useEffect(() => {
+    setMounted(true)
+
     // Generate a unique session ID
     const newSessionId = Math.random().toString(36).substring(2, 15)
     setSessionId(newSessionId)
@@ -123,11 +126,15 @@ export function ScannerQR() {
   return (
     <div className="flex flex-col items-center gap-4 p-4">
       <div className="rounded-lg border bg-card p-4 flex justify-center">
-        <QRCodeSVG 
-          value={connectionUrl} 
-          size={200} 
-          className="max-w-full h-auto"
-        />
+        {mounted ? (
+          <QRCodeSVG 
+            value={connectionUrl} 
+            size={200} 
+            className="max-w-full h-auto"
+          />
+        ) : (
+          <div className="h-[200px] w-[200px] max-w-full" />
+        )}
       </div>
       <div className="text-center">
         <p className="text-sm text-gray-500">
