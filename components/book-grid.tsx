@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import Image from "next/image"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { CoverImage } from "@/components/cover-image"
 import { Button } from "@/components/ui/button"
 import { Star, Edit } from "lucide-react"
 import { BookDetailsDialog } from "./book-details-dialog"
@@ -100,7 +100,7 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
                 </div>
               )}
               {book.coverImage ? (
-                <Image
+                <CoverImage
                   src={book.coverImage}
                   alt={`Cover of ${book.title}`}
                   fill

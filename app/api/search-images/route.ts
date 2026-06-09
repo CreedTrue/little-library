@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     const results = (data.results || []).map((result: any) => ({
       title: result.title,
-      url: result.url,
+      url: result.properties?.url || result.thumbnail?.src || result.url,
       thumbnail: result.thumbnail?.src || result.url,
       pageUrl: result.page_url,
     }))

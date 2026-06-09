@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
-import { unlink } from "fs/promises"
+import { unlink, writeFile, mkdir } from "fs/promises"
 import path from "path"
+import crypto from "crypto"
 
 async function removeLocalCover(coverImage: string | null) {
   if (!coverImage || !coverImage.startsWith("/covers/")) return
@@ -14,6 +15,38 @@ async function removeLocalCover(coverImage: string | null) {
     await unlink(filePath)
   } catch {
     // File may not exist, ignore
+  }
+}
+
+async function downloadAndSaveImage(imageUrl: string): Promise<string | null> {
+  if (!imageUrl.startsWith("http")) return imageUrl
+
+  try {
+    const response = await fetch(imageUrl, { signal: AbortSignal.timeout(10000) })
+    if (!response.ok) return null
+
+    const contentType = response.headers.get("content-type") || ""
+    if (!contentType.startsWith("image/")) return null
+
+    const extMap: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+      "image/avif": "avif",
+    }
+    const ext = extMap[contentType] || "webp"
+
+    const buffer = Buffer.from(await response.arrayBuffer())
+    const filename = `${crypto.randomUUID()}.${ext}`
+    const coversDir = path.join(process.cwd(), "public", "covers")
+
+    await mkdir(coversDir, { recursive: true })
+    await writeFile(path.join(coversDir, filename), buffer)
+
+    return `/covers/${filename}`
+  } catch {
+    return null
   }
 }
 
@@ -50,6 +83,10 @@ export async function addBook(data: {
     }
 
     const { collectionIds, incrementQuantityOf, ...bookData } = data
+
+    if (bookData.coverImage) {
+      bookData.coverImage = (await downloadAndSaveImage(bookData.coverImage)) ?? undefined
+    }
 
     if (incrementQuantityOf) {
       const existingBook = await prisma.book.findFirst({
@@ -506,6 +543,7 @@ export async function updateBook(
 
     if (bookData.coverImage !== undefined && bookData.coverImage !== existingBook.coverImage) {
       await removeLocalCover(existingBook.coverImage)
+      bookData.coverImage = (await downloadAndSaveImage(bookData.coverImage)) ?? undefined
     }
 
     const updatedBook = await prisma.book.update({

@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Image from "next/image"
 import { Star, Trash2, Edit, X } from "lucide-react"
+import { CoverImage } from "@/components/cover-image"
 import {
   Dialog,
   DialogContent,
@@ -115,7 +115,7 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="relative aspect-[2/3] w-full max-w-[300px] mx-auto">
                 {currentBook.coverImage ? (
-                  <Image
+                  <CoverImage
                     src={currentBook.coverImage}
                     alt={`Cover of ${currentBook.title}`}
                     fill

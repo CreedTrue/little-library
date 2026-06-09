@@ -47,7 +47,9 @@ export default async function LibraryPage({ searchParams }: Props) {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-8">Library</h1>
-      <LibraryFilters />
+      <Suspense fallback={<div className="h-10" />}>
+        <LibraryFilters />
+      </Suspense>
       <Suspense fallback={<div>Loading...</div>}>
         <BookGrid 
           books={result.books || []}

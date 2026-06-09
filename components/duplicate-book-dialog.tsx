@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import {
   Dialog,
   DialogContent,
@@ -10,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { CoverImage } from "@/components/cover-image"
 
 interface ExistingBook {
   id: string
@@ -59,7 +59,7 @@ export function DuplicateBookDialog({
         <div className="flex items-start gap-4 py-4">
           <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded">
             {existingBook.coverImage ? (
-              <Image
+              <CoverImage
                 src={existingBook.coverImage}
                 alt={`Cover of ${existingBook.title}`}
                 fill
