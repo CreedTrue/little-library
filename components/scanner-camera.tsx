@@ -74,18 +74,11 @@ export function ScannerCamera({
         (decodedText) => {
           if (cooldownRef.current || !mountedRef.current) return
           cooldownRef.current = true
-          scanner.pause(true)
           setIsScanning(false)
           onScanSuccessRef.current(decodedText)
 
           resumeTimerRef.current = setTimeout(() => {
-            if (!mountedRef.current || !scannerRef.current) return
-            try {
-              scannerRef.current.resume()
-              if (mountedRef.current) setIsScanning(true)
-            } catch {
-              // scanner stopped during cooldown
-            }
+            if (mountedRef.current) setIsScanning(true)
             cooldownRef.current = false
             resumeTimerRef.current = null
           }, 2000)
