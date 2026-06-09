@@ -21,6 +21,7 @@ export async function addBook(data: {
   description?: string
   coverImage?: string
   collectionIds?: string[]
+  incrementQuantityOf?: string
 }) {
   try {
     const session = await getServerSession(authOptions)
@@ -36,7 +37,45 @@ export async function addBook(data: {
       return { error: "User not found" }
     }
 
-    const { collectionIds, ...bookData } = data
+    const { collectionIds, incrementQuantityOf, ...bookData } = data
+
+    if (incrementQuantityOf) {
+      const existingBook = await prisma.book.findFirst({
+        where: { id: incrementQuantityOf, userId: user.id },
+        include: {
+          collections: { select: { id: true } },
+        },
+      })
+
+      if (!existingBook) {
+        return { error: "Book not found" }
+      }
+
+      const existingCollectionIds = existingBook.collections.map((c) => c.id)
+      const mergedCollectionIds = [
+        ...new Set([...existingCollectionIds, ...(collectionIds || [])]),
+      ]
+
+      const book = await prisma.book.update({
+        where: { id: incrementQuantityOf },
+        data: {
+          quantity: { increment: 1 },
+          collections: {
+            set: mergedCollectionIds.map((id) => ({ id })),
+          },
+        },
+        include: {
+          collections: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      })
+
+      return { book }
+    }
 
     const book = await prisma.book.create({
       data: {
@@ -60,6 +99,67 @@ export async function addBook(data: {
   } catch (error) {
     console.error("Error adding book:", error)
     return { error: "Failed to add book" }
+  }
+}
+
+export async function checkDuplicateBook(data: {
+  title: string
+  author: string
+  isbn: string
+}) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return { error: "Not authenticated" }
+    }
+
+    const { title, author, isbn } = data
+    const userId = session.user.id
+
+    const allUserBooks = await prisma.book.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        title: true,
+        author: true,
+        isbn: true,
+        coverImage: true,
+        quantity: true,
+      },
+    })
+
+    const normalizedIsbn = isbn.trim().toLowerCase()
+    const exactMatch = allUserBooks.find(
+      (b) => b.isbn.trim().toLowerCase() === normalizedIsbn && normalizedIsbn.length > 0
+    )
+
+    if (exactMatch) {
+      return {
+        type: "exact" as const,
+        existingBook: exactMatch,
+      }
+    }
+
+    const normalizedTitle = title.trim().toLowerCase()
+    const normalizedAuthor = author.trim().toLowerCase()
+    const editionMatch = allUserBooks.find(
+      (b) =>
+        b.title.trim().toLowerCase() === normalizedTitle &&
+        b.author.trim().toLowerCase() === normalizedAuthor &&
+        b.isbn.trim().toLowerCase() !== normalizedIsbn
+    )
+
+    if (editionMatch) {
+      return {
+        type: "edition" as const,
+        existingBook: editionMatch,
+      }
+    }
+
+    return { type: "none" as const }
+  } catch (error) {
+    console.error("Error checking duplicate book:", error)
+    return { error: "Failed to check for duplicates" }
   }
 }
 
@@ -357,6 +457,7 @@ export async function updateBook(
     isbn?: string
     description?: string
     coverImage?: string
+    quantity?: number
     collectionIds?: string[]
   }
 ) {

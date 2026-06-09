@@ -72,9 +72,10 @@ model Book {
   id          String   @id @default(cuid())
   title       String
   author      String
-  isbn        String   @unique
+  isbn        String
   description String?
   coverImage  String?
+  quantity    Int      @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      String

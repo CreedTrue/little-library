@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { addBook } from "@/app/actions/books"
+import { addBook, checkDuplicateBook } from "@/app/actions/books"
 import { getCollections } from "@/app/actions/collections"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "sonner"
@@ -11,6 +11,7 @@ import { CreateCollectionDialog } from "@/components/create-collection-dialog"
 import { Label } from "@/components/ui/label"
 import { CollectionSelector } from "@/components/collection-selector"
 import { EditionPickerDialog, type SelectedEdition } from "@/components/edition-picker-dialog"
+import { DuplicateBookDialog } from "@/components/duplicate-book-dialog"
 import { QRCodeSVG } from "qrcode.react"
 
 interface BookData {
@@ -70,6 +71,11 @@ export default function AddBookPageContent() {
   const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false)
   const [scannerConnected, setScannerConnected] = useState(false)
   const [sessionId, setSessionId] = useState("")
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false)
+  const [duplicateType, setDuplicateType] = useState<"exact" | "edition">("exact")
+  const [duplicateExistingBook, setDuplicateExistingBook] = useState<any>(null)
+  const [pendingSubmit, setPendingSubmit] = useState(false)
+  const [origin, setOrigin] = useState("")
 
   // Debug logging for state changes
   useEffect(() => {
@@ -92,6 +98,10 @@ export default function AddBookPageContent() {
       // Clear the stored data
       localStorage.removeItem("scannedBook")
     }
+  }, [])
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
   }, [])
 
   const fetchCollections = async (newCollectionId?: string) => {
@@ -228,17 +238,9 @@ export default function AddBookPageContent() {
     }
   }, [searchParams])
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    e.stopPropagation() // Prevent any bubbling
-    
-    // Prevent form submission if collection dialog is open
-    if (isCollectionDialogOpen) {
-      return
-    }
-    
+  const executeAddBook = async (incrementQuantityOf?: string) => {
     setIsSubmitting(true)
-    
+
     startTransition(async () => {
       try {
         const { coverUrl, ...rest } = formData;
@@ -246,6 +248,7 @@ export default function AddBookPageContent() {
           ...rest,
           coverImage: formData.coverUrl,
           collectionIds: selectedCollectionIds,
+          incrementQuantityOf,
         })
         if (result && result.error) {
           toast("Failed to add book", { description: result.error })
@@ -253,7 +256,6 @@ export default function AddBookPageContent() {
           return
         }
         toast.success("Book added successfully!")
-        // Reset form data
         setFormData({
           title: "",
           author: "",
@@ -269,6 +271,67 @@ export default function AddBookPageContent() {
         setIsSubmitting(false)
       }
     })
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (isCollectionDialogOpen) {
+      return
+    }
+
+    setIsSubmitting(true)
+
+    const duplicateResult = await checkDuplicateBook({
+      title: formData.title,
+      author: formData.author,
+      isbn: formData.isbn,
+    })
+
+    if (duplicateResult.error) {
+      toast("Failed to check for duplicates", { description: duplicateResult.error })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (duplicateResult.type === "exact") {
+      setDuplicateType("exact")
+      setDuplicateExistingBook(duplicateResult.existingBook)
+      setDuplicateDialogOpen(true)
+      setPendingSubmit(true)
+      setIsSubmitting(false)
+      return
+    }
+
+    if (duplicateResult.type === "edition") {
+      setDuplicateType("edition")
+      setDuplicateExistingBook(duplicateResult.existingBook)
+      setDuplicateDialogOpen(true)
+      setPendingSubmit(true)
+      setIsSubmitting(false)
+      return
+    }
+
+    executeAddBook()
+  }
+
+  const handleAddAnotherCopy = () => {
+    setDuplicateDialogOpen(false)
+    setPendingSubmit(false)
+    executeAddBook(duplicateExistingBook.id)
+  }
+
+  const handleAddAnyway = () => {
+    setDuplicateDialogOpen(false)
+    setPendingSubmit(false)
+    executeAddBook()
+  }
+
+  const handleDuplicateCancel = () => {
+    setDuplicateDialogOpen(false)
+    setPendingSubmit(false)
+    setIsSubmitting(false)
   }
 
   const handleSearch = async () => {
@@ -456,7 +519,7 @@ export default function AddBookPageContent() {
                 <div className="rounded-lg border bg-card p-4 flex flex-col items-center justify-center">
                   <p className="text-xs text-gray-500 mb-2">Scan to connect Phone</p>
                   <QRCodeSVG
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/scanner?session=${sessionId}`}
+                    value={`${origin}/scanner?session=${sessionId}`}
                     size={120}
                   />
                 </div>
@@ -627,6 +690,20 @@ export default function AddBookPageContent() {
         authorName={pickerAuthorName}
         description={pickerDescription}
         onSelect={handleEditionPick}
+      />
+
+      <DuplicateBookDialog
+        type={duplicateType}
+        existingBook={duplicateExistingBook}
+        open={duplicateDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleDuplicateCancel()
+          }
+        }}
+        onAddAnotherCopy={handleAddAnotherCopy}
+        onAddAnyway={handleAddAnyway}
+        onCancel={handleDuplicateCancel}
       />
     </div>
   )

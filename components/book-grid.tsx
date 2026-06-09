@@ -24,6 +24,7 @@ interface Book {
   coverImage: string | null
   averageRating: number | null
   read: boolean
+  quantity: number
   isbn?: string | null
   description?: string | null
 }
@@ -91,6 +92,11 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
               {book.read && (
                 <div className="absolute top-1 right-1 z-10 bg-green-500 rounded-full p-0.5">
                   <CheckCircle2 className="w-3 h-3 text-white" />
+                </div>
+              )}
+              {book.quantity > 1 && (
+                <div className="absolute top-1 left-1 z-10 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {book.quantity}
                 </div>
               )}
               {book.coverImage ? (

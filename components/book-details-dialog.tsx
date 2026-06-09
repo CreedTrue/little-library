@@ -31,6 +31,7 @@ interface BookDetailsDialogProps {
     coverImage?: string | null
     averageRating: number | null
     read: boolean
+    quantity: number
     collections?: {
       id: string
       name: string
@@ -135,6 +136,12 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
                   <div>
                     <h3 className="font-semibold">ISBN</h3>
                     <p className="text-muted-foreground">{currentBook.isbn}</p>
+                  </div>
+                )}
+                {currentBook.quantity > 1 && (
+                  <div>
+                    <h3 className="font-semibold">Copies</h3>
+                    <p className="text-muted-foreground">{currentBook.quantity}</p>
                   </div>
                 )}
                 {currentBook.collections && currentBook.collections.length > 0 && (
