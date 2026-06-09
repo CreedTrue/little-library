@@ -80,7 +80,7 @@ export function DuplicateBookDialog({
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              You have {existingBook.quantity} copy
+              You have {existingBook.quantity} cop
               {existingBook.quantity !== 1 ? "ies" : "y"}
             </p>
           </div>

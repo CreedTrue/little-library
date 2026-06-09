@@ -87,7 +87,7 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
     <div className="space-y-8">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {books.map((book) => (
-          <Card key={book.id} className="flex flex-col">
+          <Card key={book.id} className="flex flex-col py-0 gap-0 overflow-hidden">
             <CardHeader className="relative aspect-[3/4] p-0">
               {book.read && (
                 <div className="absolute top-1 right-1 z-10 bg-green-500 rounded-full p-0.5">
