@@ -1,15 +1,14 @@
 #!/bin/sh
-
-# This script is the entrypoint for the Docker container.
-# It runs database migrations and then starts the application.
-
-# Exit immediately if a command exits with a non-zero status.
 set -e
+
+# Create covers directory if not present and set ownership
+mkdir -p /app/public/covers
+chown -R nextjs:nodejs /app/public/covers
 
 # Run database migrations
 echo "Running database migrations..."
-npx prisma migrate deploy
+su-exec nextjs:nodejs npx prisma migrate deploy
 
-# Start the application by executing the command given as arguments to this script.
+# Drop privileges and start the application
 echo "Starting the application..."
-exec "$@"
+exec su-exec nextjs:nodejs "$@"

@@ -4,6 +4,18 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
+import { unlink } from "fs/promises"
+import path from "path"
+
+async function removeLocalCover(coverImage: string | null) {
+  if (!coverImage || !coverImage.startsWith("/covers/")) return
+  try {
+    const filePath = path.join(process.cwd(), "public", coverImage)
+    await unlink(filePath)
+  } catch {
+    // File may not exist, ignore
+  }
+}
 
 interface AddBookData {
   title: string
@@ -426,7 +438,7 @@ export async function removeBook(bookId: string) {
     // Verify the book belongs to the user
     const book = await prisma.book.findUnique({
       where: { id: bookId },
-      select: { userId: true },
+      select: { userId: true, coverImage: true },
     })
 
     if (!book) {
@@ -436,6 +448,8 @@ export async function removeBook(bookId: string) {
     if (book.userId !== user.id) {
       return { error: "Not authorized to remove this book" }
     }
+
+    await removeLocalCover(book.coverImage)
 
     // Delete the book
     await prisma.book.delete({
@@ -477,7 +491,7 @@ export async function updateBook(
 
     const existingBook = await prisma.book.findUnique({
       where: { id: bookId },
-      select: { userId: true },
+      select: { userId: true, coverImage: true },
     })
 
     if (!existingBook) {
@@ -489,6 +503,10 @@ export async function updateBook(
     }
 
     const { collectionIds, ...bookData } = data
+
+    if (bookData.coverImage !== undefined && bookData.coverImage !== existingBook.coverImage) {
+      await removeLocalCover(existingBook.coverImage)
+    }
 
     const updatedBook = await prisma.book.update({
       where: { id: bookId },

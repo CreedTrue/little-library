@@ -11,6 +11,7 @@ import { CreateCollectionDialog } from "@/components/create-collection-dialog"
 import { Label } from "@/components/ui/label"
 import { CollectionSelector } from "@/components/collection-selector"
 import { EditionPickerDialog, type SelectedEdition } from "@/components/edition-picker-dialog"
+import { CoverImagePicker } from "@/components/cover-image-picker"
 import { DuplicateBookDialog } from "@/components/duplicate-book-dialog"
 import { QRCodeSVG } from "qrcode.react"
 
@@ -635,16 +636,13 @@ export default function AddBookPageContent() {
                 />
               </div>
               <div>
-                <label htmlFor="coverUrl" className="block text-sm font-medium">
-                  Cover Image URL
+                <label className="block text-sm font-medium mb-1">
+                  Cover Image
                 </label>
-                <input
-                  type="text"
-                  id="coverUrl"
+                <CoverImagePicker
                   value={formData.coverUrl}
-                  onChange={(e) => setFormData({ ...formData, coverUrl: e.target.value })}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                  placeholder="https://..."
+                  onChange={(url) => setFormData({ ...formData, coverUrl: url })}
+                  title={formData.title}
                 />
               </div>
               <div className="space-y-2">
@@ -669,15 +667,6 @@ export default function AddBookPageContent() {
                 {isSubmitting || isPending ? "Adding..." : "Add Book"}
               </button>
             </form>
-            {formData.coverUrl && (
-              <div className="flex-shrink-0 flex justify-center md:items-start md:mt-0 mt-8">
-                <img
-                  src={formData.coverUrl}
-                  alt="Book cover"
-                  className="h-96 w-auto object-contain border rounded shadow"
-                />
-              </div>
-            )}
           </div>
         </TabsContent>
       </Tabs>

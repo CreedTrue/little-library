@@ -28,8 +28,11 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy the entrypoint script and set proper ownership
-COPY --chown=nextjs:nodejs entrypoint.sh .
+# Install su-exec for privilege dropping
+RUN apk add --no-cache su-exec
+
+# Copy the entrypoint script
+COPY entrypoint.sh .
 # Convert line endings to Unix format and make executable
 RUN sed -i 's/\r$//' ./entrypoint.sh && chmod +x ./entrypoint.sh
 
@@ -44,9 +47,6 @@ COPY --from=builder /app/prisma ./prisma
 
 # The server.js file requires socket.cjs from the lib directory
 COPY --from=builder --chown=nextjs:nodejs /app/lib/socket.cjs ./lib/socket.cjs
-
-# Switch to the non-root user
-USER nextjs
 
 # Expose the port the app runs on
 EXPOSE 3000

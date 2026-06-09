@@ -7,6 +7,8 @@ services:
     volumes:
       # This bind mount persists the database file in a `data` directory on the host machine.
       - ./data:/prisma
+      # This bind mount persists uploaded cover images in a `covers` directory on the host machine.
+      - ./covers:/app/public/covers
     environment:
       # This points Prisma to the database file inside the container.
       - DATABASE_URL=file:/prisma/dev.db

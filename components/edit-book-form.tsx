@@ -15,8 +15,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { updateBook } from "@/app/actions/books"
 import { getCollections } from "@/app/actions/collections"
 import { CollectionSelector } from "./collection-selector"
+import { CoverImagePicker } from "./cover-image-picker"
 import { toast } from "sonner"
-import Image from "next/image"
 
 interface Collection {
   id: string
@@ -104,19 +104,15 @@ export function EditBookForm({ book, onSuccess, onCancel }: EditBookFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col gap-6">
-            {formData.coverImage && (
-              <div className="flex justify-center">
-                <div className="relative h-48 w-32">
-                  <Image
-                    src={formData.coverImage}
-                    alt={`Cover of ${formData.title}`}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
-                </div>
-              </div>
-            )}
-            
+            <div className="grid gap-3">
+              <Label>Cover Image</Label>
+              <CoverImagePicker
+                value={formData.coverImage}
+                onChange={(url) => handleInputChange("coverImage", url)}
+                title={formData.title}
+              />
+            </div>
+
             <div className="grid gap-3">
               <Label htmlFor="title">Title *</Label>
               <Input
@@ -158,17 +154,6 @@ export function EditBookForm({ book, onSuccess, onCancel }: EditBookFormProps) {
               />
             </div>
             
-            <div className="grid gap-3">
-              <Label htmlFor="coverImage">Cover Image URL</Label>
-              <Input
-                id="coverImage"
-                type="url"
-                value={formData.coverImage}
-                onChange={(e) => handleInputChange("coverImage", e.target.value)}
-                placeholder="https://example.com/cover-image.jpg"
-              />
-            </div>
-
             <div className="grid gap-3">
               <Label>Collections</Label>
               <CollectionSelector
