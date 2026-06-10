@@ -15,7 +15,7 @@ function ScannerPageContent() {
   useEffect(() => {
     if (!sessionId) return
 
-    const socketUrl = process.env.NEXT_PUBLIC_YOUR_DOMAIN || "http://192.168.1.100:3000"
+    const socketUrl = process.env.NEXT_PUBLIC_YOUR_DOMAIN || window.location.origin
     const socket = io(socketUrl, {
       path: "/api/socket",
       query: { sessionId },

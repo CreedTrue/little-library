@@ -32,7 +32,7 @@ export function ScannerQR() {
     setSessionId(newSessionId)
 
     // Initialize socket connection
-    const socketInstance = io(process.env.NEXT_PUBLIC_YOUR_DOMAIN || "http://localhost:3000", {
+    const socketInstance = io(process.env.NEXT_PUBLIC_YOUR_DOMAIN || window.location.origin, {
       path: "/api/socket",
       query: { sessionId: newSessionId },
     })
