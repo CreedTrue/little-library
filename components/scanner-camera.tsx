@@ -153,19 +153,6 @@ export function ScannerCamera({
   return (
     <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-xl bg-black">
       <div id="scanner-camera-viewfinder" className="relative aspect-video w-full" />
-
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="relative" style={{ width: qrboxSize, height: qrboxSize }}>
-          <div className="absolute left-0 top-0 h-8 w-8 border-l-3 border-t-3 border-white/80 rounded-tl-md" />
-          <div className="absolute right-0 top-0 h-8 w-8 border-r-3 border-t-3 border-white/80 rounded-tr-md" />
-          <div className="absolute bottom-0 left-0 h-8 w-8 border-b-3 border-l-3 border-white/80 rounded-bl-md" />
-          <div className="absolute bottom-0 right-0 h-8 w-8 border-b-3 border-r-3 border-white/80 rounded-br-md" />
-          {isScanning && (
-            <div className="absolute left-1 right-1 h-0.5 animate-pulse bg-primary shadow-[0_0_8px_2px] shadow-primary scan-line" />
-          )}
-        </div>
-      </div>
-
       {cameraError && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 p-4">
           <div className="text-center text-white">
@@ -218,15 +205,7 @@ export function ScannerCamera({
         </div>
       </div>
 
-      <style>{`
-        @keyframes scanMove {
-          0%, 100% { top: 0; }
-          50% { top: calc(100% - 2px); }
-        }
-        .scan-line {
-          animation: scanMove 2s ease-in-out infinite;
-        }
-      `}</style>
+
     </div>
   )
 }
