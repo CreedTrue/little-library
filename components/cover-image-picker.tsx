@@ -119,10 +119,10 @@ export function CoverImagePicker({ value, onChange, title }: CoverImagePickerPro
           </div>
 
           <Input
-            type="url"
+            type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="Or paste an image URL..."
+            placeholder="Or paste an image URL or path..."
             className="text-sm"
           />
         </div>
