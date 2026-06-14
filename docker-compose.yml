@@ -9,7 +9,7 @@ services:
       - ./data:/prisma
       # This bind mount persists uploaded cover images in a `covers` directory on the host machine.
       # The :Z flag relabels the bind mount for SELinux (no-op on non-SELinux systems).
-      - ./covers:/app/public/covers:Z
+      - ./public/covers:/app/public/covers:Z
     environment:
       # This points Prisma to the database file inside the container.
       - DATABASE_URL=file:/prisma/dev.db
