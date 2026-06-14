@@ -8,10 +8,16 @@ services:
       # This bind mount persists the database file in a `data` directory on the host machine.
       - ./data:/prisma
       # This bind mount persists uploaded cover images in a `covers` directory on the host machine.
-      - ./covers:/app/public/covers
+      # The :Z flag relabels the bind mount for SELinux (no-op on non-SELinux systems).
+      - ./covers:/app/public/covers:Z
     environment:
       # This points Prisma to the database file inside the container.
       - DATABASE_URL=file:/prisma/dev.db
+      # PUID/PGID should match the host user's UID/GID so bind-mounted files
+      # remain accessible on the host. Run `id -u` and `id -g` on the host
+      # to find your values. Defaults to 1001:1001 if unset.
+      - PUID=${PUID:-1001}
+      - PGID=${PGID:-1001}
     env_file:
       - .env
     restart: unless-stopped

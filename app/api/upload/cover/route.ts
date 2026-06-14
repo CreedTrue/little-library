@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const ext = "webp"
     const filename = `${crypto.randomUUID()}.${ext}`
-    const coversDir = path.join(process.cwd(), "public", "covers")
+    const coversDir = path.join(process.cwd(), process.env.COVERS_DIR || "public/covers")
 
     await mkdir(coversDir, { recursive: true })
 

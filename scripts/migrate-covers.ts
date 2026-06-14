@@ -62,7 +62,7 @@ async function migrateExistingCovers() {
       const ext = extMap[contentType] || "webp"
       const buffer = Buffer.from(await response.arrayBuffer())
       const filename = `${crypto.randomUUID()}.${ext}`
-      const coversDir = path.join(process.cwd(), "public", "covers")
+      const coversDir = path.join(process.cwd(), process.env.COVERS_DIR || "public/covers")
 
       await mkdir(coversDir, { recursive: true })
       await writeFile(path.join(coversDir, filename), buffer)

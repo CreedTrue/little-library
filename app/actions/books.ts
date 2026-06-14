@@ -11,10 +11,11 @@ import crypto from "crypto"
 async function removeLocalCover(coverImage: string | null) {
   if (!coverImage || !coverImage.startsWith("/covers/")) return
   try {
-    const filePath = path.join(process.cwd(), "public", coverImage)
+    const coversDir = process.env.COVERS_DIR || "public/covers"
+    const filePath = path.join(process.cwd(), coversDir, path.basename(coverImage))
     await unlink(filePath)
-  } catch {
-    // File may not exist, ignore
+  } catch (error) {
+    console.error(`Error removing local cover ${coverImage}:`, error)
   }
 }
 
@@ -39,13 +40,14 @@ async function downloadAndSaveImage(imageUrl: string): Promise<string | null> {
 
     const buffer = Buffer.from(await response.arrayBuffer())
     const filename = `${crypto.randomUUID()}.${ext}`
-    const coversDir = path.join(process.cwd(), "public", "covers")
+    const coversDir = path.join(process.cwd(), process.env.COVERS_DIR || "public/covers")
 
     await mkdir(coversDir, { recursive: true })
     await writeFile(path.join(coversDir, filename), buffer)
 
     return `/covers/${filename}`
-  } catch {
+  } catch (error) {
+    console.error(`Error downloading image from ${imageUrl}:`, error)
     return null
   }
 }

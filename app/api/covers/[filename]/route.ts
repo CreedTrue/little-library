@@ -6,9 +6,11 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ filename: string }> }
 ) {
+  const { filename } = await params
+
   try {
-    const { filename } = await params
-    const filePath = path.join(process.cwd(), "public", "covers", filename)
+    const coversDir = process.env.COVERS_DIR || "public/covers"
+    const filePath = path.join(process.cwd(), coversDir, filename)
     const buffer = await readFile(filePath)
 
     const ext = filename.split(".").pop()?.toLowerCase()
@@ -29,7 +31,8 @@ export async function GET(
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     })
-  } catch {
+  } catch (error) {
+    console.error(`Error serving cover image ${filename}:`, error)
     return new NextResponse("Image not found", { status: 404 })
   }
 }
