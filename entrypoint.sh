@@ -29,6 +29,14 @@ else
   chmod -R 777 /app/public/covers
 fi
 
+mkdir -p /prisma
+if chown -R nextjs:nodejs /prisma 2>/dev/null; then
+  echo "Ownership of /prisma set to nextjs:nodejs ($PUID:$PGID)"
+else
+  echo "Warning: Could not change ownership of /prisma. Making world-writable..."
+  chmod -R 777 /prisma
+fi
+
 # Run database migrations
 echo "Running database migrations..."
 su-exec nextjs:nodejs npx prisma migrate deploy
