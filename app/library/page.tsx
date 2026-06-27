@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { getBooks } from "@/app/actions/books"
+import { getCollections } from "@/app/actions/collections"
 import { BookGrid } from "@/components/book-grid"
 import { LibraryFilters } from "@/components/library-filters"
 import { getServerSession } from "next-auth"
@@ -27,14 +28,19 @@ export default async function LibraryPage({ searchParams }: Props) {
   const sortOrder = ((resolvedSearchParams.sortOrder as string) || "asc") as SortOrder
   const page = parseInt((resolvedSearchParams.page as string) || "1")
   const readStatus = ((resolvedSearchParams.readStatus as string) || "all") as ReadStatus
+  const collection = (resolvedSearchParams.collection as string) || ""
 
-  const result = await getBooks({
-    search,
-    sortBy,
-    sortOrder,
-    page,
-    readStatus,
-  })
+  const [result, collectionsResult] = await Promise.all([
+    getBooks({
+      search,
+      sortBy,
+      sortOrder,
+      page,
+      readStatus,
+      collection,
+    }),
+    getCollections(),
+  ])
 
   if (result.error) {
     return (
@@ -48,7 +54,7 @@ export default async function LibraryPage({ searchParams }: Props) {
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-8">Library</h1>
       <Suspense fallback={<div className="h-10" />}>
-        <LibraryFilters />
+        <LibraryFilters collections={collectionsResult.collections || []} />
       </Suspense>
       <Suspense fallback={<div>Loading...</div>}>
         <BookGrid 

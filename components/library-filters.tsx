@@ -12,7 +12,7 @@ import {
 import { useCallback, useEffect, useState } from "react"
 import { useDebounce } from "@/lib/hooks/use-debounce"
 
-export function LibraryFilters() {
+export function LibraryFilters({ collections = [] }: { collections?: { id: string; name: string }[] }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [search, setSearch] = useState(searchParams.get("search") || "")
@@ -93,6 +93,27 @@ export function LibraryFilters() {
           <SelectItem value="unread">Unread</SelectItem>
         </SelectContent>
       </Select>
+      {collections.length > 0 && (
+        <Select
+          defaultValue={searchParams.get("collection") || "all"}
+          onValueChange={(value) => {
+            const queryString = createQueryString({ collection: value === "all" ? "" : value })
+            router.push(`/library?${queryString}`)
+          }}
+        >
+          <SelectTrigger className="sm:max-w-[180px]">
+            <SelectValue placeholder="Collection" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Collections</SelectItem>
+            {collections.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
     </div>
   )
 } 

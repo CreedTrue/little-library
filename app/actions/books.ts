@@ -227,6 +227,7 @@ export async function getBooks({
   page = 1,
   limit = 12,
   readStatus = "all",
+  collection = "",
 }: {
   search?: string;
   sortBy?: "title" | "author" | "createdAt";
@@ -234,6 +235,7 @@ export async function getBooks({
   page?: number;
   limit?: number;
   readStatus?: "all" | "read" | "unread";
+  collection?: string;
 }) {
   try {
     const skip = (page - 1) * limit;
@@ -244,92 +246,38 @@ export async function getBooks({
     }
     const userId = session.user.id
 
-    let where: any = {}
+    const conditions: any[] = []
 
-    // Handle search filtering
     if (search) {
-      where.OR = [
-        { title: { contains: search } },
-        { author: { contains: search } },
-        { isbn: { contains: search } },
-      ]
-    }
-
-    // Handle read status filtering
-    if (readStatus !== "all") {
-      if (readStatus === "read") {
-        // For "read" status: books that have a readStatus record with read: true
-        where.readStatuses = {
-          some: {
-            userId,
-            read: true,
-          },
-        }
-      } else if (readStatus === "unread") {
-        // For "unread" status: books that either have no readStatus record OR have readStatus with read: false
-        where.OR = [
-          {
-            readStatuses: {
-              none: {
-                userId,
-              },
-            },
-          },
-          {
-            readStatuses: {
-              some: {
-                userId,
-                read: false,
-              },
-            },
-          },
-        ]
-      }
-    }
-
-    // If both search and readStatus filters are active, combine them with AND
-    if (search && readStatus !== "all") {
-      const searchCondition = {
+      conditions.push({
         OR: [
           { title: { contains: search } },
           { author: { contains: search } },
           { isbn: { contains: search } },
         ],
-      }
-
-      const readStatusCondition = readStatus === "read" 
-        ? {
-            readStatuses: {
-              some: {
-                userId,
-                read: true,
-              },
-            },
-          }
-        : {
-            OR: [
-              {
-                readStatuses: {
-                  none: {
-                    userId,
-                  },
-                },
-              },
-              {
-                readStatuses: {
-                  some: {
-                    userId,
-                    read: false,
-                  },
-                },
-              },
-            ],
-          }
-
-      where = {
-        AND: [searchCondition, readStatusCondition],
-      }
+      })
     }
+
+    if (readStatus === "read") {
+      conditions.push({
+        readStatuses: { some: { userId, read: true } },
+      })
+    } else if (readStatus === "unread") {
+      conditions.push({
+        OR: [
+          { readStatuses: { none: { userId } } },
+          { readStatuses: { some: { userId, read: false } } },
+        ],
+      })
+    }
+
+    if (collection && collection !== "all") {
+      conditions.push({
+        collections: { some: { id: collection } },
+      })
+    }
+
+    const where = conditions.length > 0 ? { AND: conditions } : {}
 
     const [books, total] = await Promise.all([
       prisma.book.findMany({
