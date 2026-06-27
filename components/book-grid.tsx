@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { CoverImage } from "@/components/cover-image"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,7 @@ interface Book {
   averageRating: number | null
   read: boolean
   quantity: number
+  userId: string
   isbn?: string | null
   description?: string | null
 }
@@ -38,6 +40,7 @@ interface BookGridProps {
 export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { data: session } = useSession()
   const [selectedBook, setSelectedBook] = useState<Book | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingBook, setEditingBook] = useState<Book | null>(null)
@@ -124,15 +127,17 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
             </CardContent>
             <CardFooter className="p-2 pt-0">
               <div className="flex gap-1 w-full">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs h-7"
-                  onClick={() => handleEditBook(book)}
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Edit
-                </Button>
+                {session?.user?.id === book.userId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs h-7"
+                    onClick={() => handleEditBook(book)}
+                  >
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

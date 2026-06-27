@@ -6,16 +6,14 @@ import { authOptions } from "@/lib/auth"
 
 export async function getCollections() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     return { error: "Not authenticated" }
   }
 
   try {
     const collections = await prisma.collection.findMany({
       where: {
-        user: {
-          email: session.user.email,
-        },
+        userId: session.user.id,
       },
       include: {
         books: true,
@@ -30,24 +28,16 @@ export async function getCollections() {
 
 export async function createCollection(name: string, description?: string) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     return { error: "Not authenticated" }
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
-    if (!user) {
-      return { error: "User not found" }
-    }
-
     const collection = await prisma.collection.create({
       data: {
         name,
         description,
-        userId: user.id,
+        userId: session.user.id,
       },
     })
 

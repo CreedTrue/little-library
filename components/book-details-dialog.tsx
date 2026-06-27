@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Star, Trash2, Edit, X } from "lucide-react"
 import { CoverImage } from "@/components/cover-image"
 import {
@@ -32,6 +33,7 @@ interface BookDetailsDialogProps {
     averageRating: number | null
     read: boolean
     quantity: number
+    userId: string
     collections?: {
       id: string
       name: string
@@ -42,6 +44,7 @@ interface BookDetailsDialogProps {
 }
 
 export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogProps) {
+  const { data: session } = useSession()
   const [isRemoving, setIsRemoving] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -91,7 +94,7 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
             <div className="flex items-center justify-between">
               <DialogTitle className="text-2xl">{currentBook.title}</DialogTitle>
               <div className="flex gap-2 px-6">
-                {!isEditing && (
+                {!isEditing && session?.user?.id === currentBook.userId && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -198,17 +201,19 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
                     Mark as read
                   </Label>
                 </div>
-                <div className="pt-4">
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={() => setShowConfirmDialog(true)}
-                    disabled={isRemoving}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    {isRemoving ? "Removing..." : "Remove from Library"}
-                  </Button>
-                </div>
+                {session?.user?.id === currentBook.userId && (
+                  <div className="pt-4">
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => setShowConfirmDialog(true)}
+                      disabled={isRemoving}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {isRemoving ? "Removing..." : "Remove from Library"}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

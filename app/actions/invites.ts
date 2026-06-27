@@ -8,13 +8,10 @@ import { getServerSession } from "next-auth"
 
 async function isAdmin() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     return false
   }
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  })
-  return user?.role === "ADMIN"
+  return session.user.role === "ADMIN"
 }
 
 export async function createInvite(email: string) {

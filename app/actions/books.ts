@@ -72,16 +72,8 @@ export async function addBook(data: {
 }) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return { error: "Not authenticated" }
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
-    if (!user) {
-      return { error: "User not found" }
     }
 
     const { collectionIds, incrementQuantityOf, ...bookData } = data
@@ -92,7 +84,7 @@ export async function addBook(data: {
 
     if (incrementQuantityOf) {
       const existingBook = await prisma.book.findFirst({
-        where: { id: incrementQuantityOf, userId: user.id },
+        where: { id: incrementQuantityOf, userId: session.user.id },
         include: {
           collections: { select: { id: true } },
         },
@@ -131,7 +123,7 @@ export async function addBook(data: {
     const book = await prisma.book.create({
       data: {
         ...bookData,
-        userId: user.id,
+        userId: session.user.id,
         collections: {
           connect: collectionIds?.map((id) => ({ id })),
         },
@@ -462,16 +454,8 @@ export async function setReadStatus(bookId: string, read: boolean) {
 export async function removeBook(bookId: string) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return { error: "Not authenticated" }
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
-    if (!user) {
-      return { error: "User not found" }
     }
 
     // Verify the book belongs to the user
@@ -484,7 +468,7 @@ export async function removeBook(bookId: string) {
       return { error: "Book not found" }
     }
 
-    if (book.userId !== user.id) {
+    if (book.userId !== session.user.id) {
       return { error: "Not authorized to remove this book" }
     }
 
@@ -516,16 +500,8 @@ export async function updateBook(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return { error: "Not authenticated" }
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
-    if (!user) {
-      return { error: "User not found" }
     }
 
     const existingBook = await prisma.book.findUnique({
@@ -537,7 +513,7 @@ export async function updateBook(
       return { error: "Book not found" }
     }
 
-    if (existingBook.userId !== user.id) {
+    if (existingBook.userId !== session.user.id) {
       return { error: "Not authorized to update this book" }
     }
 

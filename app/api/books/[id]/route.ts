@@ -10,16 +10,8 @@ export async function GET(
   try {
     const { id } = await params
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
-    if (!user) {
-      return new NextResponse("User not found", { status: 404 })
     }
 
     const book = await prisma.book.findUnique({
@@ -40,7 +32,7 @@ export async function GET(
     }
 
     // Verify the book belongs to the user
-    if (book.userId !== user.id) {
+    if (book.userId !== session.user.id) {
       return new NextResponse("Not authorized", { status: 403 })
     }
 
