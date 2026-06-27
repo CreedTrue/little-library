@@ -23,17 +23,19 @@ export async function GET(
             id: true,
             name: true
           }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
         }
       }
     })
 
     if (!book) {
       return new NextResponse("Book not found", { status: 404 })
-    }
-
-    // Verify the book belongs to the user
-    if (book.userId !== session.user.id) {
-      return new NextResponse("Not authorized", { status: 403 })
     }
 
     // Calculate average rating

@@ -114,6 +114,13 @@ export async function addBook(data: {
               name: true,
             },
           },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
       })
 
@@ -133,6 +140,13 @@ export async function addBook(data: {
           select: {
             id: true,
             name: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
           },
         },
       },
@@ -332,6 +346,13 @@ export async function getBooks({
             select: {
               id: true,
               name: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
             },
           },
         },
@@ -538,6 +559,13 @@ export async function updateBook(
           select: {
             id: true,
             name: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
           },
         },
       },

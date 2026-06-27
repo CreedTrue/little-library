@@ -39,11 +39,15 @@ export async function GET(req: Request) {
     }
 
     const books = await prisma.book.findMany({
-      where: {
-        userId: session.user.id
-      },
       include: {
-        ratings: true
+        ratings: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     })
 

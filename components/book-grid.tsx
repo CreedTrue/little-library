@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, User } from "lucide-react"
 
 interface Book {
   id: string
@@ -29,6 +29,11 @@ interface Book {
   userId: string
   isbn?: string | null
   description?: string | null
+  user?: {
+    id: string
+    name: string | null
+    email: string | null
+  }
 }
 
 interface BookGridProps {
@@ -100,6 +105,19 @@ export function BookGrid({ books, totalPages, currentPage }: BookGridProps) {
               {book.quantity > 1 && (
                 <div className="absolute top-1 left-1 z-10 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {book.quantity}
+                </div>
+              )}
+              {session?.user?.id && book.userId !== session.user.id && (
+                <div 
+                  className="absolute bottom-2 left-2 z-20 group/owner cursor-pointer"
+                  title={`Owned by ${book.user?.name || book.user?.email || "Another user"}`}
+                >
+                  <div className="flex items-center h-6 px-1.5 rounded-full bg-black/80 hover:bg-black/95 text-white backdrop-blur-md border border-white/20 shadow-md transition-all duration-300 ease-out">
+                    <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="text-[10px] font-medium max-w-0 opacity-0 group-hover/owner:max-w-[120px] group-hover/owner:opacity-100 group-hover/owner:ml-1 transition-all duration-300 ease-out truncate whitespace-nowrap">
+                      {book.user?.name || book.user?.email || "Another user"}
+                    </span>
+                  </div>
                 </div>
               )}
               {book.coverImage ? (

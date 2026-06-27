@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { Star, Trash2, Edit, X } from "lucide-react"
+import { Star, Trash2, Edit, X, User } from "lucide-react"
 import { CoverImage } from "@/components/cover-image"
 import {
   Dialog,
@@ -38,6 +38,11 @@ interface BookDetailsDialogProps {
       id: string
       name: string
     }[]
+    user?: {
+      id: string
+      name: string | null
+      email: string | null
+    }
   }
   isOpen: boolean
   onClose: () => void
@@ -131,6 +136,14 @@ export function BookDetailsDialog({ book, isOpen, onClose }: BookDetailsDialogPr
                 )}
               </div>
               <div className="space-y-4">
+                {session?.user?.id && currentBook.userId !== session.user.id && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm text-indigo-600 dark:text-indigo-400">
+                    <User className="w-4 h-4 shrink-0" />
+                    <span>
+                      Owned by <span className="font-semibold">{currentBook.user?.name || currentBook.user?.email || "Another user"}</span>
+                    </span>
+                  </div>
+                )}
                 <div>
                   <h3 className="font-semibold">Author</h3>
                   <p className="text-muted-foreground">{currentBook.author}</p>
