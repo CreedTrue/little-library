@@ -174,7 +174,7 @@ export function ScannerQR() {
       ) : (
         <div className="my-6 flex flex-col items-center justify-center">
           <button
-            onClick={() => router.push(`/scanner?session=${sessionId}`)}
+            onClick={() => router.push(`/scanner?session=${sessionId}&mode=step`)}
             className="w-full rounded-md bg-primary px-4 py-3 font-medium text-white hover:bg-primary/90"
           >
             Open Scanner

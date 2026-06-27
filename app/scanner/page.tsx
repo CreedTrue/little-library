@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ScannerCamera } from "@/components/scanner-camera"
 import { io, type Socket } from "socket.io-client"
 
@@ -9,8 +9,10 @@ function ScannerPageContent() {
   const [isConnected, setIsConnected] = useState(false)
   const [lastScanned, setLastScanned] = useState("")
   const socketRef = useRef<Socket | null>(null)
+  const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session")
+  const [scannerOnly, setScannerOnly] = useState(searchParams.get("mode") !== "step")
 
   useEffect(() => {
     if (!sessionId) return
@@ -64,7 +66,11 @@ function ScannerPageContent() {
       if (typeof window !== "undefined" && window.navigator.vibrate) {
         window.navigator.vibrate(200)
       }
-      socketRef.current?.emit("scan-barcode", isbn)
+      if (scannerOnly) {
+        socketRef.current?.emit("scan-barcode", isbn)
+      } else {
+        router.push(`/books/add?isbn=${isbn}&session=${sessionId || ""}`)
+      }
     }
   }
 
@@ -80,8 +86,19 @@ function ScannerPageContent() {
     <div className="flex min-h-screen flex-col items-center p-4">
       <div className="mb-4 w-full max-w-md">
         <div className="rounded-lg bg-card p-4 text-center">
+          <label className="flex items-center justify-between mb-3 border-b pb-2 cursor-pointer select-none">
+            <span className="text-sm font-medium">Scanner Only</span>
+            <input
+              type="checkbox"
+              checked={scannerOnly}
+              onChange={(e) => setScannerOnly(e.target.checked)}
+              className="cursor-pointer h-4 w-4 rounded border-gray-300"
+            />
+          </label>
           <p className="text-sm text-muted-foreground">
-            {isConnected ? "Connected to desktop" : "Connecting..."}
+            {scannerOnly
+              ? (isConnected ? "Connected to desktop" : "Connecting...")
+              : "Scanning will open Add Book form here"}
           </p>
           {lastScanned && (
             <p className="mt-2 text-sm text-green-600">

@@ -83,6 +83,55 @@ export default function AddBookPageContent() {
     console.log("State changed - isConnected:", isConnected, "scannerConnected:", scannerConnected)
   }, [isConnected, scannerConnected])
 
+  const loadBookByIsbn = async (isbn: string) => {
+    toast.loading("Searching for book information...")
+    try {
+      let response = await fetch(`https://openlibrary.org/isbn/${isbn}.json`)
+      if (!response.ok && isbn.startsWith('978') && isbn.length === 13) {
+        const originalUpc = isbn.substring(3, 12)
+        response = await fetch(`https://openlibrary.org/isbn/${originalUpc}.json`)
+      }
+      if (!response.ok) throw new Error("Book not found")
+      const bookData = await response.json()
+      let authorName = "Unknown Author"
+      let description = ""
+      const workId = bookData.works?.[0]?.key
+      if (workId) {
+        const workResponse = await fetch(`https://openlibrary.org${workId}.json`)
+        if (workResponse.ok) {
+          const workData = await workResponse.json()
+          description = workData.description?.value || workData.description || ""
+        }
+      }
+      if (bookData.authors?.[0]?.key) {
+        const authorResponse = await fetch(`https://openlibrary.org${bookData.authors[0].key}.json`)
+        if (authorResponse.ok) {
+          const authorData = await authorResponse.json()
+          authorName = authorData.name
+        }
+      }
+      setFormData({
+        title: bookData.title || "Unknown Title",
+        author: authorName,
+        isbn: isbn,
+        description: description,
+        coverUrl: bookData.covers?.[0]
+          ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
+          : "",
+      })
+      setSelectedCollectionIds([])
+      setTab("manual")
+      toast.dismiss()
+      toast.success("Book data loaded!")
+    } catch (error) {
+      console.error("Error fetching book data:", error)
+      toast.dismiss()
+      toast.error("Failed to fetch book data")
+      setFormData(prev => ({ ...prev, isbn }))
+      setTab("manual")
+    }
+  }
+
   useEffect(() => {
     // Check for scanned book data from dashboard
     const scannedBookData = localStorage.getItem("scannedBook")
@@ -98,8 +147,14 @@ export default function AddBookPageContent() {
       setSelectedCollectionIds([])
       // Clear the stored data
       localStorage.removeItem("scannedBook")
+      setTab("manual")
+    } else {
+      const urlIsbn = searchParams.get("isbn")
+      if (urlIsbn) {
+        loadBookByIsbn(urlIsbn)
+      }
     }
-  }, [])
+  }, [searchParams])
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -172,64 +227,7 @@ export default function AddBookPageContent() {
       // Handle both object format and direct string format
       const isbn = typeof data === 'string' ? data : data.isbn
       console.log("Processing ISBN:", isbn)
-      
-      // Show loading toast
-      toast.loading("Searching for book information...")
-      
-      try {
-        // Try the provided ISBN first
-        let response = await fetch(`https://openlibrary.org/isbn/${isbn}.json`)
-        
-        // If that fails and it's a converted ISBN-13, try the original UPC-A
-        if (!response.ok && isbn.startsWith('978') && isbn.length === 13) {
-          const originalUpc = isbn.substring(3, 12) // Remove 978 prefix and check digit
-          console.log("Trying original UPC-A:", originalUpc)
-          response = await fetch(`https://openlibrary.org/isbn/${originalUpc}.json`)
-        }
-        
-        if (!response.ok) {
-          throw new Error("Book not found")
-        }
-        const bookData = await response.json()
-        let authorName = "Unknown Author"
-        let description = ""
-
-        // Get the work ID and fetch description
-        const workId = bookData.works?.[0]?.key
-        if (workId) {
-          const workResponse = await fetch(`https://openlibrary.org${workId}.json`)
-          if (workResponse.ok) {
-            const workData = await workResponse.json()
-            description = workData.description?.value || workData.description || ""
-          }
-        }
-
-        if (bookData.authors?.[0]?.key) {
-          const authorResponse = await fetch(`https://openlibrary.org${bookData.authors[0].key}.json`)
-          if (authorResponse.ok) {
-            const authorData = await authorResponse.json()
-            authorName = authorData.name
-          }
-        }
-
-        setFormData({
-          title: bookData.title || "Unknown Title",
-          author: authorName,
-          isbn: isbn,
-          description: description,
-          coverUrl: bookData.covers?.[0]
-            ? `https://covers.openlibrary.org/b/id/${bookData.covers[0]}-L.jpg`
-            : "",
-        })
-        setSelectedCollectionIds([])
-        setTab("manual")
-        toast.dismiss()
-        toast.success("Book data loaded from scanner!")
-      } catch (error) {
-        console.error("Error fetching book data:", error)
-        toast.dismiss()
-        toast.error("Failed to fetch book data")
-      }
+      loadBookByIsbn(isbn)
     })
 
     setSocket(socketInstance)
