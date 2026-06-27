@@ -22,10 +22,14 @@ export function ScannerQR() {
   const [scannedBook, setScannedBook] = useState<BookData | null>(null)
   const [scannedWorkId, setScannedWorkId] = useState<string | null>(null)
   const [editionPickerOpen, setEditionPickerOpen] = useState(false)
+  const [showQR, setShowQR] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768) {
+      setShowQR(false)
+    }
 
     // Generate a unique session ID
     const newSessionId = Math.random().toString(36).substring(2, 15)
@@ -124,31 +128,59 @@ export function ScannerQR() {
     : `/scanner?session=${sessionId}`
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4">
-      <div className="rounded-lg border bg-card p-4 flex justify-center">
-        {mounted ? (
-          <QRCodeSVG 
-            value={connectionUrl} 
-            size={200} 
-            className="max-w-full h-auto"
+    <div className="flex flex-col gap-4 w-full">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold">Scan with Phone</h3>
+          <p className="text-sm text-gray-500">Use your phone to scan book barcodes</p>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+          <span>QR Code</span>
+          <input 
+            type="checkbox" 
+            checked={showQR} 
+            onChange={(e) => setShowQR(e.target.checked)}
+            className="cursor-pointer h-4 w-4 rounded border-gray-300"
           />
-        ) : (
-          <div className="h-[200px] w-[200px] max-w-full" />
-        )}
+        </label>
       </div>
-      <div className="text-center">
-        <p className="text-sm text-gray-500">
-          {isConnected ? "Ready for scanner" : "Waiting for scanner..."}
-        </p>
-        <p className="mt-2 text-xs text-gray-400">
-          Scan this QR code with your phone to connect
-        </p>
-        {isConnected && (
-          <p className="mt-2 text-xs text-green-600">
-            Desktop will automatically open add book page when scanner connects
-          </p>
-        )}
-      </div>
+      {showQR ? (
+        <div className="flex flex-col items-center gap-4">
+          <div className="rounded-lg border bg-card p-4 flex justify-center">
+            {mounted ? (
+              <QRCodeSVG 
+                value={connectionUrl} 
+                size={200} 
+                className="max-w-full h-auto"
+              />
+            ) : (
+              <div className="h-[200px] w-[200px] max-w-full" />
+            )}
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-gray-500">
+              {isConnected ? "Ready for scanner" : "Waiting for scanner..."}
+            </p>
+            <p className="mt-2 text-xs text-gray-400">
+              Scan this QR code with your phone to connect
+            </p>
+            {isConnected && (
+              <p className="mt-2 text-xs text-green-600">
+                Desktop will automatically open add book page when scanner connects
+              </p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="my-6 flex flex-col items-center justify-center">
+          <button
+            onClick={() => router.push(`/scanner?session=${sessionId}`)}
+            className="w-full rounded-md bg-primary px-4 py-3 font-medium text-white hover:bg-primary/90"
+          >
+            Open Scanner
+          </button>
+        </div>
+      )}
       {scannedBook && (
         <div className="mt-4 w-full rounded-lg border bg-card p-4">
           <h3 className="font-semibold">{scannedBook.title}</h3>
